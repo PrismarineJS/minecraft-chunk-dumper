@@ -10,7 +10,7 @@ const CMD = 'node ' + CMD_PATH
 
 describe(`chunkDumper cli`, () => {
   it('has an help', async () => {
-    const { stdout, stderr } = await exec(CMD + 'help')
+    const { stdout, stderr } = await exec(CMD + ' help')
     assert.strictEqual(stderr, '')
     assert(stdout.toLowerCase().includes('usage'))
   })
