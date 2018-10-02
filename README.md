@@ -7,7 +7,7 @@
 Dumps chunks for minecraft versions 1.7 to 1.13
 
 
-### Install
+## Install
 
 To install a `minecraftChunkDumper` command line program, run:
 
@@ -18,7 +18,7 @@ npm install minecraft-chunk-dumper -g
 
 ## Usage
 
-## Cli
+### Cli
 
 `minecraftChunkDumper <minecraft version> <bufferFile> <metainfoFile>`
 
@@ -37,7 +37,7 @@ Commands:
     continuouslySave <minecraft-version> <folder>             continuously saves chunks to the specified folder, until the program is stopped
 ```
 
-## Programmatic
+### Programmatic
 
 ```js
 const ChunkDumper = require('minecraft-chunk-dumper')
@@ -54,11 +54,9 @@ async function run() {
 run().then(() => console.log('All done !'))
 ```
 
-## API
+### API
 
-### ChunkDumper
-
-Chunk dumper is a class which can dumps chunk for a given minecraft version.
+ChunkDumper is a class which can dumps chunk for a given minecraft version.
 
 It saves 2 type of files :
 * Chunk files contain the buffer of the chunk (binary format)
@@ -87,12 +85,12 @@ Returns a promise when ready.
 Stops the nmp client then stops the server.
 Returns a promise when finished.
 
-### ChunkDumper.saveChunk(chunkFile, metaFile)
+#### ChunkDumper.saveChunk(chunkFile, metaFile)
 
 Save 1 chunk in specified `chunkFile` and `metaFile` 
 Returns a promise when finished.
 
-### ChunkDumper.saveChunks(folder, n)
+#### ChunkDumper.saveChunks(folder, n)
 
 Save n chunks in specified folder
 Returns a promise when finished.
@@ -103,7 +101,7 @@ Continuously saves all chunk and metadata file to folder.
 * Chunks are named chunk_x_z.dump
 * Metadata files are named chunk_x_z.data
 
-### ChunkDumper.stopSavingChunks()
+#### ChunkDumper.stopSavingChunks()
 
 Stops saving chunks
 

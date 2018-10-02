@@ -1,5 +1,4 @@
-class ChunkDumper
-{
+class ChunkDumper {
 
 }
 
