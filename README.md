@@ -35,7 +35,7 @@ Commands:
     continuouslySave <minecraft-version> <folder>             continuously saves chunks to the specified folder, until the program is stopped
 ```
 
-### Programmatic
+### Programmatic example
 
 ```js
 const ChunkDumper = require('minecraft-chunk-dumper')
