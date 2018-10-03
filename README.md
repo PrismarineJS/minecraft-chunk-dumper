@@ -52,6 +52,12 @@ async function run () {
 run().then(() => console.log('All done !'))
 ```
 
+### Debugging
+
+You can enable some debugging output using DEBUG environment variable:
+
+DEBUG="chunk-dumper" node [...]
+
 ### API
 
 ChunkDumper is a class which can dumps chunk for a given minecraft version.
