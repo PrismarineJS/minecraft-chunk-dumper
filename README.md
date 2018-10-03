@@ -20,8 +20,6 @@ npm install minecraft-chunk-dumper -g
 
 ### Cli
 
-`minecraftChunkDumper <minecraft version> <bufferFile> <metainfoFile>`
-
 ```bash
 $ minecraftChunkDumper --help
 
@@ -44,7 +42,7 @@ const ChunkDumper = require('minecraft-chunk-dumper')
 
 const chunkDumper = new ChunkDumper('1.13.1')
 
-async function run() {
+async function run () {
   await chunkDumper.start()
   chunkDumper.on('chunk', (x, z, bitMap, chunkData) => console.log('I received a chunk at ' + x + ';' + z))
   await chunkDumper.saveChunks('dumps/', 100)
