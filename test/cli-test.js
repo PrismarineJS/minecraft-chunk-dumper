@@ -45,7 +45,7 @@ describe(`chunkDumper cli`, () => {
     assert.strictEqual(stderr, '')
     assert(stdout.toLowerCase().includes('done'))
 
-    const dirContent = await fs.readDir('chunks/')
+    const dirContent = await fs.readdir('chunks/')
     assert.strictEqual(dirContent.length, 10)
     for (let file of dirContent) {
       await fs.unlink(path.join('chunks', file))
@@ -62,7 +62,7 @@ describe(`chunkDumper cli`, () => {
       setTimeout(() => child.kill('SIGINT'), 10)
 
       child.on('close', async () => {
-        const dirContent = await fs.readDir('chunks/')
+        const dirContent = await fs.readdir('chunks/')
         assert.notStrictEqual(dirContent.length, 0)
         for (let file of dirContent) {
           await fs.unlink(path.join('chunks', file))

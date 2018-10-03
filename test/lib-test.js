@@ -26,7 +26,7 @@ describe(`chunkDumper lib`, () => {
 
   it('can save 10 chunks', async () => {
     await chunkDumper.saveChunks('chunks/', 10)
-    const dirContent = await fs.readDir('chunks/')
+    const dirContent = await fs.readdir('chunks/')
     assert.strictEqual(dirContent.length, 10)
     for (let file of dirContent) {
       await fs.unlink(path.join('chunks', file))
@@ -38,7 +38,7 @@ describe(`chunkDumper lib`, () => {
     chunkDumper.startSavingChunks('chunks')
     setTimeout(() => chunkDumper.stopSavingChunks('chunks'), 10)
 
-    const dirContent = await fs.readDir('chunks/')
+    const dirContent = await fs.readdir('chunks/')
     assert.notStrictEqual(dirContent.length, 0)
     for (let file of dirContent) {
       await fs.unlink(path.join('chunks', file))
