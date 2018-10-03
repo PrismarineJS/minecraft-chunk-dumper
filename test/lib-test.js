@@ -36,16 +36,19 @@ describe(`chunkDumper lib`, function () {
     await fs.rmdir(path.join(__dirname, 'chunks'))
   })
 
-  it.skip('can save chunks continuously', async () => {
+  it('can save chunks continuously', async () => {
     chunkDumper.startSavingChunks(path.join(__dirname, 'chunks'))
-    setTimeout(() => chunkDumper.stopSavingChunks(path.join(__dirname, 'chunks')), 10)
+    await new Promise((resolve) => setTimeout(() => {
+      chunkDumper.stopSavingChunks(path.join(__dirname, 'chunks'))
+      resolve()
+    }, 10000))
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
     assert.notStrictEqual(dirContent.length, 0)
     for (let file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
-    await fs.rmDir(path.join(__dirname, 'chunks'))
+    await fs.rmdir(path.join(__dirname, 'chunks'))
   })
 
   after('can stop', async () => {

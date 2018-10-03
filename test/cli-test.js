@@ -61,7 +61,7 @@ describe.skip(`chunkDumper cli`, function () {
 
       child.on('error', reject)
 
-      setTimeout(() => child.kill('SIGINT'), 10)
+      setTimeout(() => child.kill('SIGINT'), 10000)
 
       child.on('close', async () => {
         const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
