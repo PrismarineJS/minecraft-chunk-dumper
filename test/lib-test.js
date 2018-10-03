@@ -26,14 +26,14 @@ describe(`chunkDumper lib`, function () {
     await fs.unlink(path.join(__dirname, 'chunk.meta'))
   })
 
-  it.skip('can save 10 chunks', async () => {
+  it('can save 10 chunks', async () => {
     await chunkDumper.saveChunks(path.join(__dirname, 'chunks'), 10)
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
-    assert.strictEqual(dirContent.length, 10)
+    assert.strictEqual(dirContent.length, 20)
     for (let file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
-    await fs.rmDir(path.join(__dirname, 'chunks'))
+    await fs.rmdir(path.join(__dirname, 'chunks'))
   })
 
   it.skip('can save chunks continuously', async () => {

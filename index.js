@@ -66,7 +66,33 @@ class ChunkDumper extends EventEmitter {
   }
 
   async saveChunks (folder, count) {
+    try {
+      await fs.mkdir(folder)
+    } catch (err) {
 
+    }
+    await new Promise((resolve, reject) => {
+      let i = 0
+      const saveChunk = async ({ x, z, bitMap, chunkData }) => {
+        i++
+        let finished = false
+        if (i === count) {
+          this.removeListener('chunk', saveChunk)
+          finished = true
+        }
+        try {
+          await fs.writeFile(path.join(folder, 'chunk_' + x + '_' + z + '.dump'), chunkData)
+          await fs.writeFile(path.join(folder, 'chunk_' + x + '_' + z + '.meta'), JSON.stringify({ x, z, bitMap }), 'utf8')
+          if (finished) {
+            resolve()
+          }
+        } catch (err) {
+          this.removeListener('chunk', saveChunk)
+          reject(err)
+        }
+      }
+      this.on('chunk', saveChunk)
+    })
   }
 
   startSavingChunks (folder) {

@@ -48,11 +48,11 @@ describe.skip(`chunkDumper cli`, function () {
     assert(stdout.toLowerCase().includes('done'))
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
-    assert.strictEqual(dirContent.length, 10)
+    assert.strictEqual(dirContent.length, 20)
     for (let file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
-    await fs.rmDir('chunks')
+    await fs.rmdir('chunks')
   })
 
   it('can continuously save chunks', async () => {
