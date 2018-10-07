@@ -78,22 +78,50 @@ async function runSaveChunk (version, chunkFile, metaFile) {
   const ChunkDumper = require('../index.js')
   const chunkDumper = new ChunkDumper(version)
 
+  console.log('Starting server...')
   await chunkDumper.start()
+  console.log('Saving chunk in ' + chunkFile + ' and ' + metaFile + '.')
   await chunkDumper.saveChunk(chunkFile, metaFile)
+  console.log('Stopping server...')
   await chunkDumper.stop()
   console.log('Chunk successfully saved at ' + chunkFile + ' and ' + metaFile)
+  process.exit(0)
 }
 
 async function runSaveChunks (version, folder, count) {
   const ChunkDumper = require('../index.js')
   const chunkDumper = new ChunkDumper(version)
 
+  console.log('Starting server...')
   await chunkDumper.start()
+  console.log('Saving chunks in ' + folder + '.')
   await chunkDumper.saveChunks(folder, count)
+  console.log('Stopping server...')
   await chunkDumper.stop()
   console.log(count + ' chunks were successfully saved at ' + folder)
+  process.exit(0)
 }
 
-function runContinuouslySave (version, folder) {
+async function runContinuouslySave (version, folder) {
+  const ChunkDumper = require('../index.js')
+  const chunkDumper = new ChunkDumper(version)
 
+  console.log('Starting server...')
+  await chunkDumper.start()
+  console.log('Saving chunks in ' + folder + '. Press ctrl+c to stop.')
+  await chunkDumper.startSavingChunks(folder)
+  await new Promise(resolve => {
+    const stop = () => {
+      chunkDumper.stopSavingChunks()
+      process.removeListener('SIGINT', stop)
+      process.removeListener('SIGTERM', stop)
+      resolve()
+    }
+    process.on('SIGINT', stop)
+    process.on('SIGTERM', stop)
+  })
+  console.log('Stopping server...')
+  await chunkDumper.stop()
+  console.log('Chunks were successfully saved at ' + folder)
+  process.exit(0)
 }

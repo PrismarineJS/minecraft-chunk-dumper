@@ -24,10 +24,10 @@ class ChunkDumper extends EventEmitter {
     this.server.deleteServerDataAsync = util.promisify(this.server.deleteServerData)
 
     debug('starting server')
-    await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false' })
     this.server.on('line', (line) => {
       debug(line)
     })
+    await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false' })
     debug('connecting client')
     this.client = mc.createClient({
       username: 'Player',

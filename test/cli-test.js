@@ -72,13 +72,18 @@ describe(`chunkDumper cli`, function () {
     await fs.rmdir(path.join(__dirname, 'chunks'))
   })
 
-  it.skip('can continuously save chunks', async () => {
-    return new Promise((resolve, reject) => {
+  it('can continuously save chunks', async () => {
+    await new Promise((resolve, reject) => {
       const child = spawn('node', [ CMD_PATH, 'continuouslySave', '1.13.1', path.join(__dirname, 'chunks') ])
 
       child.on('error', reject)
 
-      setTimeout(() => child.kill('SIGINT'), 10000)
+      child.stdout.on('data', (data) => {
+        console.log('stdout: ' + data)
+        if (data.includes('Saving chunks')) {
+          setTimeout(() => child.kill('SIGINT'), 10000)
+        }
+      })
 
       child.on('close', async () => {
         const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
@@ -86,8 +91,7 @@ describe(`chunkDumper cli`, function () {
         for (let file of dirContent) {
           await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
         }
-        await fs.rmDir(path.join(__dirname, 'chunks'))
-
+        await fs.rmdir(path.join(__dirname, 'chunks'))
         resolve()
       })
     })

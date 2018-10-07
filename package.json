@@ -33,7 +33,7 @@
   "dependencies": {
     "debug": "^4.0.1",
     "minecraft-protocol": "^1.8.1",
-    "minecraft-wrap": "^1.2.2",
+    "minecraft-wrap": "^1.2.3",
     "minimist": "^1.2.0"
   }
 }
