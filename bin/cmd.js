@@ -84,8 +84,14 @@ async function runSaveChunk (version, chunkFile, metaFile) {
   console.log('Chunk successfully saved at ' + chunkFile + ' and ' + metaFile)
 }
 
-function runSaveChunks (version, folder, count) {
+async function runSaveChunks (version, folder, count) {
+  const ChunkDumper = require('../index.js')
+  const chunkDumper = new ChunkDumper(version)
 
+  await chunkDumper.start()
+  await chunkDumper.saveChunks(folder, count)
+  await chunkDumper.stop()
+  console.log(count + ' chunks were successfully saved at ' + folder)
 }
 
 function runContinuouslySave (version, folder) {

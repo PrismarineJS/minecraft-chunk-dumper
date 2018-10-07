@@ -60,7 +60,7 @@ describe(`chunkDumper cli`, function () {
     await fs.unlink(path.join(__dirname, 'chunk.meta'))
   })
 
-  it.skip('can download 10 chunks', async () => {
+  it('can download 10 chunks', async () => {
     const { stdout } = await exec(CMD + ' saveChunks "1.13.1" "' + path.join(__dirname, 'chunks') + '" 10')
     assert(stdout.toLowerCase().includes('successfully'))
 
