@@ -12,7 +12,7 @@ const CMD_PATH = path.resolve(__dirname, '..', 'bin', 'cmd.js')
 const CMD = 'node ' + CMD_PATH
 
 describe(`chunkDumper cli`, function () {
-  this.timeout(60000)
+  this.timeout(120000)
   describe('help', () => {
     it('has an help command', async () => {
       const { stdout, stderr } = await exec(CMD + ' help')
@@ -50,10 +50,9 @@ describe(`chunkDumper cli`, function () {
     })
   })
 
-  it.skip('can download one chunk', async () => {
-    const { stdout, stderr } = await exec(CMD + ' saveChunk "1.13.1" "chunk.dump" "chunk.meta"')
-    assert.strictEqual(stderr, '')
-    assert(stdout.toLowerCase().includes('done'))
+  it('can download one chunk', async () => {
+    const { stdout } = await exec(CMD + ' saveChunk "1.13.1" "' + path.join(__dirname, 'chunk.dump') + '" "' + path.join(__dirname, 'chunk.meta') + '"')
+    assert(stdout.toLowerCase().includes('successfully'))
 
     await fs.access(path.join(__dirname, 'chunk.dump'), fsOriginal.constants.F_OK)
     await fs.access(path.join(__dirname, 'chunk.meta'), fsOriginal.constants.F_OK)
@@ -62,16 +61,15 @@ describe(`chunkDumper cli`, function () {
   })
 
   it.skip('can download 10 chunks', async () => {
-    const { stdout, stderr } = await exec(CMD + ' saveChunks "1.13.1" ' + path.join(__dirname, 'chunks') + ' 10')
-    assert.strictEqual(stderr, '')
-    assert(stdout.toLowerCase().includes('done'))
+    const { stdout } = await exec(CMD + ' saveChunks "1.13.1" "' + path.join(__dirname, 'chunks') + '" 10')
+    assert(stdout.toLowerCase().includes('successfully'))
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
     assert.strictEqual(dirContent.length, 20)
     for (let file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
-    await fs.rmdir('chunks')
+    await fs.rmdir(path.join(__dirname, 'chunks'))
   })
 
   it.skip('can continuously save chunks', async () => {

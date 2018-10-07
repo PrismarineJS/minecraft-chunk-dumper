@@ -74,8 +74,14 @@ function runHelp () {
   }.toString().split(/\n/).slice(2, -2).join('\n'))
 }
 
-function runSaveChunk (version, chunkFile, metaFile) {
+async function runSaveChunk (version, chunkFile, metaFile) {
+  const ChunkDumper = require('../index.js')
+  const chunkDumper = new ChunkDumper(version)
 
+  await chunkDumper.start()
+  await chunkDumper.saveChunk(chunkFile, metaFile)
+  await chunkDumper.stop()
+  console.log('Chunk successfully saved at ' + chunkFile + ' and ' + metaFile)
 }
 
 function runSaveChunks (version, folder, count) {
