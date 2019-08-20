@@ -9,7 +9,8 @@
   "scripts": {
     "test": "mocha",
     "lint": "standard",
-    "pretest": "npm run lint"
+    "pretest": "npm run lint",
+    "fix": "standard --fix"
   },
   "repository": {
     "type": "git",
@@ -28,7 +29,7 @@
   "homepage": "https://github.com/PrismarineJS/minecraft-chunk-dumper#readme",
   "devDependencies": {
     "mocha": "^6.0.0",
-    "standard": "^13.0.1"
+    "standard": "^14.0.0"
   },
   "dependencies": {
     "debug": "^4.0.1",

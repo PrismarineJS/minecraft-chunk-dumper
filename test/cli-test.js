@@ -11,7 +11,7 @@ const fsOriginal = require('fs')
 const CMD_PATH = path.resolve(__dirname, '..', 'bin', 'cmd.js')
 const CMD = 'node ' + CMD_PATH
 
-describe(`chunkDumper cli`, function () {
+describe('chunkDumper cli', function () {
   this.timeout(120000)
   describe('help', () => {
     it('has an help command', async () => {
@@ -66,7 +66,7 @@ describe(`chunkDumper cli`, function () {
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
     assert.strictEqual(dirContent.length, 20)
-    for (let file of dirContent) {
+    for (const file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
     await fs.rmdir(path.join(__dirname, 'chunks'))
@@ -74,7 +74,7 @@ describe(`chunkDumper cli`, function () {
 
   it('can continuously save chunks', async () => {
     await new Promise((resolve, reject) => {
-      const child = spawn('node', [ CMD_PATH, 'continuouslySave', '1.13.1', path.join(__dirname, 'chunks') ])
+      const child = spawn('node', [CMD_PATH, 'continuouslySave', '1.13.1', path.join(__dirname, 'chunks')])
 
       child.on('error', reject)
 
@@ -88,7 +88,7 @@ describe(`chunkDumper cli`, function () {
       child.on('close', async () => {
         const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
         assert.notStrictEqual(dirContent.length, 0)
-        for (let file of dirContent) {
+        for (const file of dirContent) {
           await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
         }
         await fs.rmdir(path.join(__dirname, 'chunks'))
