@@ -8,7 +8,7 @@ const path = require('path')
 const assert = require('assert')
 const fsOriginal = require('fs')
 
-describe(`chunkDumper lib`, function () {
+describe('chunkDumper lib', function () {
   this.timeout(60000)
   before('can start', async () => {
     await chunkDumper.start()
@@ -30,7 +30,7 @@ describe(`chunkDumper lib`, function () {
     await chunkDumper.saveChunks(path.join(__dirname, 'chunks'), 10)
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
     assert.strictEqual(dirContent.length, 20)
-    for (let file of dirContent) {
+    for (const file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
     await fs.rmdir(path.join(__dirname, 'chunks'))
@@ -45,7 +45,7 @@ describe(`chunkDumper lib`, function () {
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
     assert.notStrictEqual(dirContent.length, 0)
-    for (let file of dirContent) {
+    for (const file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
     await fs.rmdir(path.join(__dirname, 'chunks'))
