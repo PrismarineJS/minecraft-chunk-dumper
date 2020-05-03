@@ -167,7 +167,7 @@ class ChunkDumper extends EventEmitter {
 
   static async saveChunkFilesToFolder (folder, d) {
     const { x, z } = d
-    await ChunkDumper.saveChunkLightFiles(path.join(folder, 'chunk_' + x + '_' + z + '.dump'),
+    await ChunkDumper.saveChunkFiles(path.join(folder, 'chunk_' + x + '_' + z + '.dump'),
       path.join(folder, 'chunk_' + x + '_' + z + '.meta'), d)
   }
 
