@@ -2,7 +2,7 @@
 
 [![NPM version](https://img.shields.io/npm/v/minecraft-chunk-dumper.svg)](http://npmjs.com/package/minecraft-chunk-dumper)
 [![Build Status](https://img.shields.io/circleci/project/github/PrismarineJS/minecraft-chunk-dumper/master.svg)](https://circleci.com/gh/PrismarineJS/minecraft-chunk-dumper)
-[![Greenkeeper badge](https://badges.greenkeeper.io/PrismarineJS/minecraft-chunk-dumper.svg)](https://greenkeeper.io/)
+
 
 Dumps chunks for minecraft versions 1.7 to 1.13
 
