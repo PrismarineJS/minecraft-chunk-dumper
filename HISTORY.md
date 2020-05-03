@@ -1,5 +1,9 @@
 # History
 
+## 1.1.1
+
+* fix chunk saving
+
 ## 1.1.0
 
 * add chunk light support for 1.14 and beyond
