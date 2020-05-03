@@ -51,21 +51,30 @@ describe('chunkDumper cli', function () {
   })
 
   it('can download one chunk', async () => {
-    const { stdout } = await exec(CMD + ' saveChunk "1.13.1" "' + path.join(__dirname, 'chunk.dump') + '" "' + path.join(__dirname, 'chunk.meta') + '"')
-    assert(stdout.toLowerCase().includes('successfully'))
+    const cm = CMD + ' saveChunk "1.14.4" "' + path.join(__dirname, 'chunk.dump') + '" "' +
+    path.join(__dirname, 'chunk.meta') + '" "' + path.join(__dirname, 'chunk_light.dump') + '" "' + path.join(__dirname, 'chunk_light.meta') + '"'
+    console.log('running ' + cm)
+    const { stdout, stderr } = await exec(cm, { env: { DEBUG: 'chunk-dumper' } })
+    console.log('stdout:' + stdout)
+    console.log('stderr:' + stderr)
+    assert(stdout.toLowerCase().includes('successfully'), `${stdout} should contain successfully`)
 
     await fs.access(path.join(__dirname, 'chunk.dump'), fsOriginal.constants.F_OK)
     await fs.access(path.join(__dirname, 'chunk.meta'), fsOriginal.constants.F_OK)
+    await fs.access(path.join(__dirname, 'chunk_light.dump'), fsOriginal.constants.F_OK)
+    await fs.access(path.join(__dirname, 'chunk_light.meta'), fsOriginal.constants.F_OK)
     await fs.unlink(path.join(__dirname, 'chunk.dump'))
     await fs.unlink(path.join(__dirname, 'chunk.meta'))
+    await fs.unlink(path.join(__dirname, 'chunk_light.dump'))
+    await fs.unlink(path.join(__dirname, 'chunk_light.meta'))
   })
 
   it('can download 10 chunks', async () => {
-    const { stdout } = await exec(CMD + ' saveChunks "1.13.1" "' + path.join(__dirname, 'chunks') + '" 10')
+    const { stdout } = await exec(CMD + ' saveChunks "1.14.4" "' + path.join(__dirname, 'chunks') + '" 10')
     assert(stdout.toLowerCase().includes('successfully'))
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
-    assert.strictEqual(dirContent.length, 20)
+    assert(dirContent.length >= 40, 'should have at least 40 files')
     for (const file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
@@ -74,7 +83,7 @@ describe('chunkDumper cli', function () {
 
   it('can continuously save chunks', async () => {
     await new Promise((resolve, reject) => {
-      const child = spawn('node', [CMD_PATH, 'continuouslySave', '1.13.1', path.join(__dirname, 'chunks')])
+      const child = spawn('node', [CMD_PATH, 'continuouslySave', '1.14.4', path.join(__dirname, 'chunks')])
 
       child.on('error', reject)
 
