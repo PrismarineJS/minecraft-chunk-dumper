@@ -65,7 +65,7 @@ ChunkDumper is a class which can dumps chunk for a given minecraft version.
 
 It saves 2 type of files :
 * Chunk files contain the buffer of the chunk (binary format)
-* Metadata files are json files of that shape : `{"x":-10,"z":-1,"bitMap":15}`
+* Metadata files are json files of that shape : `{"x":-10,"z":-1,"groundUp":true,"bitMap":15,"biomes":[1,2...]}`
 
 for more recent versions (starting from 1.14), it also saves chunk light files :
 * Chunk light files contain the buffer of the chunk (binary format)
