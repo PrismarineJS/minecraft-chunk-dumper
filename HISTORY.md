@@ -1,5 +1,9 @@
 # History
 
+## 1.2.0
+
+* save biomes and groundUp (useful for 1.15.2)
+
 ## 1.1.1
 
 * fix chunk saving
