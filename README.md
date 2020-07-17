@@ -1,8 +1,7 @@
 # minecraft-chunk-dumper
 
 [![NPM version](https://img.shields.io/npm/v/minecraft-chunk-dumper.svg)](http://npmjs.com/package/minecraft-chunk-dumper)
-[![Build Status](https://img.shields.io/circleci/project/github/PrismarineJS/minecraft-chunk-dumper/master.svg)](https://circleci.com/gh/PrismarineJS/minecraft-chunk-dumper)
-
+[![Build Status](https://github.com/PrismarineJS/minecraft-chunk-dumper/workflows/CI/badge.svg)](https://github.com/PrismarineJS/minecraft-chunk-dumper/actions?query=workflow%3A%22CI%22)
 
 Dumps chunks for minecraft versions 1.7 to 1.15
 
