@@ -29,7 +29,7 @@
   "homepage": "https://github.com/PrismarineJS/minecraft-chunk-dumper#readme",
   "devDependencies": {
     "mocha": "^8.0.1",
-    "standard": "^14.0.0"
+    "standard": "^15.0.0"
   },
   "dependencies": {
     "debug": "^4.0.1",
