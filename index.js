@@ -15,6 +15,7 @@ class ChunkDumper extends EventEmitter {
     super()
     this.version = version
     this.withLightPackets = this.version.includes('1.14') || this.version.includes('1.15') || this.version.includes('1.16')
+    this.withTileEntities = true
   }
 
   async start () {
@@ -29,7 +30,7 @@ class ChunkDumper extends EventEmitter {
     this.server.on('line', (line) => {
       debug(line)
     })
-    await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false' })
+    await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false', gamemode: 'creative' })
     debug('connecting client')
     this.client = mc.createClient({
       username: 'Player',
@@ -41,6 +42,9 @@ class ChunkDumper extends EventEmitter {
     })
     this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
       this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
+    })
+    this.client.on('tile_entity_data', ({ location, action, nbtData }) => {
+      this.emit('tile_entity', ({ location, action, nbtData }))
     })
   }
 
@@ -163,6 +167,17 @@ class ChunkDumper extends EventEmitter {
       }
       this.on('chunk_light', this.savingChunkLight)
     }
+    if (this.withTileEntities) {
+      this.savingTileEntity = async d => {
+        try {
+          await ChunkDumper.saveTileEntites(folder, d)
+        } catch (err) {
+          this.stopSavingChunks()
+          throw err
+        }
+      }
+      this.on('tile_entity', this.savingTileEntity)
+    }
   }
 
   static async saveChunkFilesToFolder (folder, d) {
@@ -184,6 +199,11 @@ class ChunkDumper extends EventEmitter {
       path.join(folder, 'chunk_light_' + chunkX + '_' + chunkZ + '.meta'), d)
   }
 
+  static async saveTileEntites (folder, d) {
+    const { location: { x, y, z } } = d
+    await ChunkDumper.saveTileEntityFiles(path.join(folder, `tile_entity_${x}_${y}_${z}.meta`), d)
+  }
+
   static async saveChunkLightFiles (chunkLightDataFile, chunkLightMetaFile, {
     chunkX, chunkZ,
     skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data
@@ -199,9 +219,18 @@ class ChunkDumper extends EventEmitter {
     }), 'utf8')
   }
 
+  static async saveTileEntityFiles (tileEntityDataFile, { location, action, nbtData }) {
+    await fs.writeFile(tileEntityDataFile, JSON.stringify({
+      location,
+      action,
+      nbtData
+    }), 'utf8')
+  }
+
   stopSavingChunks () {
     this.removeListener('chunk', this.savingChunk)
     this.removeListener('chunk_light', this.savingChunkLight)
+    this.removeListener('tile_entity', this.savingTileEntity)
   }
 }
 
