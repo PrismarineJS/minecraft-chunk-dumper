@@ -108,18 +108,26 @@ Returns a promise when finished.
 
 Continuously saves all chunk and metadata file to folder.
 * Chunks are named chunk_x_z.dump
-* Metadata files are named chunk_x_z.data
+* Metadata files are named chunk_x_z.meta
 * Chunk light files are named chunk_light_x_z.dump
-* Metadata light files are named chunk_light_x_z.data
+* Metadata light files are named chunk_light_x_z.meta
+* Metadata tile entity files are named tile_entity_x_y_z.meta
 
 #### ChunkDumper.stopSavingChunks()
 
 Stops saving chunks
 
-#### "chunk"(x, z, bitMap, chunkData)
+#### "chunk" (x, z, groundUp, bitMap, biomes, chunkData)
 
 Emitted when a chunk is received
 
+#### "chunk_light" (chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data)
+
+Emitted when a light update is received
+
+#### "tile_entity" (location, action, nbtData)
+
+Emitted when tile entity data is received
 
 ### License
 
