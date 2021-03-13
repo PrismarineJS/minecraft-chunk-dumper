@@ -49,6 +49,7 @@ class ChunkDumper extends EventEmitter {
   }
 
   async stop () {
+    this.client.end()
     debug('stopping server')
     await this.server.stopServerAsync()
     debug('deleting data')
