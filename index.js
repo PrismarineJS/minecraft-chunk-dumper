@@ -10,11 +10,59 @@ const util = require('util')
 const mc = require('minecraft-protocol')
 const debug = require('debug')('chunk-dumper')
 
+function flattenMaskArray (sectionBitMask) {
+  // We need to handle arrays specially because protocol will return
+  // array of BigInt on new versions, while we really need an array of 32-bit integers,
+  // with bits sorted from least to most significant ones
+  // BigInt is internally an array, but bits are sorted in the opposite way,
+  // e.g. most significant bits first, so we need to flip it manually before passing to prismarine-chunk
+  // and then flatten the array
+  if (Array.isArray(sectionBitMask)) {
+    return sectionBitMask.map(bigInt => bigInt.reverse()).flat(1)
+  }
+  return sectionBitMask
+}
+
+function condenseLightingDataPacket (packet) {
+  // total payload length is amount of all sections, each section is 2048 bytes + 2 bytes for varInt size
+  const totalPayloadLength = (packet.skyLight.length + packet.blockLight.length) * (2048 + 2)
+  const resultBuffer = Buffer.alloc(totalPayloadLength)
+
+  let currentIndex = 0
+  for (const skyLightArray of packet.skyLight) {
+    // write varInt(2048) first
+    resultBuffer.writeUInt8(128, currentIndex++)
+    resultBuffer.writeUInt8(16, currentIndex++)
+
+    // write actual chunk section payload now
+    resultBuffer.set(skyLightArray, currentIndex)
+    currentIndex += skyLightArray.length
+  }
+
+  for (const blockLightArray of packet.blockLight) {
+    // write varInt(2048) first
+    resultBuffer.writeUInt8(128, currentIndex++)
+    resultBuffer.writeUInt8(16, currentIndex++)
+
+    // write actual chunk section payload now
+    resultBuffer.set(blockLightArray, currentIndex)
+    currentIndex += blockLightArray.length
+  }
+
+  // validate payload size
+  if (currentIndex !== totalPayloadLength) {
+    throw new Error(`Malformed light update packet received, expected length: ${totalPayloadLength}, received: ${currentIndex}`)
+  }
+
+  return resultBuffer
+}
+
 class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
     this.version = version
-    this.withLightPackets = this.version.includes('1.14') || this.version.includes('1.15') || this.version.includes('1.16')
+    this.withLightPackets = this.version.includes('1.14') || this.version.includes('1.15') ||
+      this.version.includes('1.16') || this.version.includes('1.17')
   }
 
   async start () {
@@ -36,11 +84,26 @@ class ChunkDumper extends EventEmitter {
       version: this.version,
       port: 25569
     })
-    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }) => {
-      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }))
+    this.client.on('map_chunk', (packet) => {
+      this.emit('chunk', {
+        x: packet.x,
+        z: packet.z,
+        bitMap: packet.bitMap ?? flattenMaskArray(packet.primaryBitMask),
+        biomes: packet.biomes,
+        groundUp: packet.groundUp,
+        chunkData: packet.chunkData
+      })
     })
-    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
-      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
+    this.client.on('update_light', (packet) => {
+      this.emit('chunk_light', {
+        chunkX: packet.chunkX,
+        chunkZ: packet.chunkZ,
+        skyLightMask: flattenMaskArray(packet.skyLightMask),
+        blockLightMask: flattenMaskArray(packet.blockLightMask),
+        emptySkyLightMask: packet.emptySkyLightMask,
+        emptyBlockLightMask: packet.emptyBlockLightMask,
+        data: packet.data ?? condenseLightingDataPacket(packet)
+      })
     })
   }
 
