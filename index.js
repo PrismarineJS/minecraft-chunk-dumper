@@ -100,8 +100,8 @@ class ChunkDumper extends EventEmitter {
         chunkZ: packet.chunkZ,
         skyLightMask: flattenMaskArray(packet.skyLightMask),
         blockLightMask: flattenMaskArray(packet.blockLightMask),
-        emptySkyLightMask: packet.emptySkyLightMask,
-        emptyBlockLightMask: packet.emptyBlockLightMask,
+        emptySkyLightMask: flattenMaskArray(packet.emptySkyLightMask),
+        emptyBlockLightMask: flattenMaskArray(packet.emptyBlockLightMask),
         data: packet.data ?? condenseLightingDataPacket(packet)
       })
     })
