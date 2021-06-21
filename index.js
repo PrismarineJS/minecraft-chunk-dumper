@@ -23,40 +23,6 @@ function flattenMaskArray (sectionBitMask) {
   return sectionBitMask
 }
 
-function condenseLightingDataPacket (packet) {
-  // total payload length is amount of all sections, each section is 2048 bytes + 2 bytes for varInt size
-  const totalPayloadLength = (packet.skyLight.length + packet.blockLight.length) * (2048 + 2)
-  const resultBuffer = Buffer.alloc(totalPayloadLength)
-
-  let currentIndex = 0
-  for (const skyLightArray of packet.skyLight) {
-    // write varInt(2048) first
-    resultBuffer.writeUInt8(128, currentIndex++)
-    resultBuffer.writeUInt8(16, currentIndex++)
-
-    // write actual chunk section payload now
-    resultBuffer.set(skyLightArray, currentIndex)
-    currentIndex += skyLightArray.length
-  }
-
-  for (const blockLightArray of packet.blockLight) {
-    // write varInt(2048) first
-    resultBuffer.writeUInt8(128, currentIndex++)
-    resultBuffer.writeUInt8(16, currentIndex++)
-
-    // write actual chunk section payload now
-    resultBuffer.set(blockLightArray, currentIndex)
-    currentIndex += blockLightArray.length
-  }
-
-  // validate payload size
-  if (currentIndex !== totalPayloadLength) {
-    throw new Error(`Malformed light update packet received, expected length: ${totalPayloadLength}, received: ${currentIndex}`)
-  }
-
-  return resultBuffer
-}
-
 class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
@@ -102,7 +68,7 @@ class ChunkDumper extends EventEmitter {
         blockLightMask: flattenMaskArray(packet.blockLightMask),
         emptySkyLightMask: flattenMaskArray(packet.emptySkyLightMask),
         emptyBlockLightMask: flattenMaskArray(packet.emptyBlockLightMask),
-        data: packet.data ?? condenseLightingDataPacket(packet)
+        data: packet.data ?? { skyLight: packet.skyLight, blockLight: packet.blockLight }
       })
     })
   }
@@ -252,7 +218,11 @@ class ChunkDumper extends EventEmitter {
     chunkX, chunkZ,
     skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data
   }) {
-    await fs.writeFile(chunkLightDataFile, data)
+    if (Buffer.isBuffer(data)) {
+      await fs.writeFile(chunkLightDataFile, data)
+    } else {
+      await fs.writeFile(chunkLightDataFile, JSON.stringify(data))
+    }
     await fs.writeFile(chunkLightMetaFile, JSON.stringify({
       chunkX,
       chunkZ,
