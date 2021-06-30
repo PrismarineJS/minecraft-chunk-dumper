@@ -22,7 +22,7 @@ if (['saveChunk', 'saveChunks', 'continuouslySave'].indexOf(command) !== -1 && a
 } else if (command === 'version' || argv.version) {
   runVersion()
 } else if (command === 'saveChunk') {
-  if (argv._.length !== 4 && argv._.length !== 6) {
+  if (argv._.length !== 4 && argv._.length !== 6 && argv._.length !== 8) {
     runHelp()
   } else {
     const version = argv._[1]
@@ -30,7 +30,8 @@ if (['saveChunk', 'saveChunks', 'continuouslySave'].indexOf(command) !== -1 && a
     const metaFile = argv._[3]
     const chunkLightFile = argv._[4]
     const metaLightFile = argv._[5]
-    runSaveChunk(version, chunkFile, metaFile, chunkLightFile, metaLightFile)
+    const metaEntityFile = argv._[6]
+    runSaveChunk(version, chunkFile, metaFile, chunkLightFile, metaLightFile, metaEntityFile)
   }
 } else if (command === 'saveChunks') {
   if (argv._.length !== 4) {
@@ -60,23 +61,21 @@ function runVersion () {
 }
 
 function runHelp () {
-  console.log(function () {
-    /*
+  console.log(`
   Usage:
     minecraftChunkDumper [command] <minecraft-version> <options>
 
   Example:
-      minecraftChunkDumper saveChunk "1.14.4" "chunk.dump" "chunk.meta" "chunkLight.dump" "chunkLight.meta"
+      minecraftChunkDumper saveChunk "1.14.4" "chunk.dump" "chunk.meta" "chunkLight.dump" "chunkLight.meta" "tileEntities.meta"
 
   Commands:
-      saveChunk <minecraft-version> <chunk-file> <meta-file> [<chunk-light-file> <meta-light-file>]    save a single chunk file to specified files
+      saveChunk <minecraft-version> <chunk-file> <meta-file> [<chunk-light-file> <meta-light-file> <meta-entity-file]    save a single chunk file to specified files
       saveChunks <minecraft-version> <folder> <count>           save the specified number of chunks to the given folder
       continuouslySave <minecraft-version> <folder>             continuously saves chunks to the specified folder, until the program is stopped
-    */
-  }.toString().split(/\n/).slice(2, -2).join('\n'))
+  `)
 }
 
-async function runSaveChunk (version, chunkFile, metaFile, chunkLightFile, metaLightFile) {
+async function runSaveChunk (version, chunkFile, metaFile, chunkLightFile, metaLightFile, metaEntityFile) {
   const ChunkDumper = require('../index.js')
   const chunkDumper = new ChunkDumper(version)
 
@@ -84,11 +83,13 @@ async function runSaveChunk (version, chunkFile, metaFile, chunkLightFile, metaL
   await chunkDumper.start()
   console.log('Saving chunk in ' + chunkFile + ' and ' + metaFile + '.')
   console.log('Saving chunk light in ' + chunkLightFile + ' and ' + metaLightFile + '.')
-  await chunkDumper.saveChunk(chunkFile, metaFile, chunkLightFile, metaLightFile)
+  console.log('Saving tile entities in ' + metaEntityFile + '.')
+  await chunkDumper.saveChunk(chunkFile, metaFile, chunkLightFile, metaLightFile, metaEntityFile)
   console.log('Stopping server...')
   await chunkDumper.stop()
   console.log('Chunk successfully saved at ' + chunkFile + ' and ' + metaFile)
   console.log('Chunk light successfully saved at ' + chunkLightFile + ' and ' + metaLightFile)
+  console.log('Tile entities successfully saved at ' + metaEntityFile)
   process.exit(0)
 }
 

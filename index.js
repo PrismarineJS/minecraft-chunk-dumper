@@ -3,6 +3,7 @@ const WrapServer = require('minecraft-wrap').WrapServer
 const downloadServer = require('minecraft-wrap').downloadServer
 const path = require('path')
 const os = require('os')
+const { Vec3 } = require('vec3')
 const MC_SERVER_PATH = path.join(os.tmpdir(), 'server')
 const MC_SERVER_JAR = path.join(os.tmpdir(), 'server.jar')
 const fs = require('fs').promises
@@ -14,7 +15,8 @@ class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
     this.version = version
-    this.withLightPackets = this.version.includes('1.14') || this.version.includes('1.15') || this.version.includes('1.16')
+    this.mcData = require('minecraft-data')(version)
+    this.withLightPackets = this.mcData.isNewerOrEqualTo('1.14')
     this.withTileEntities = true
   }
 
@@ -28,22 +30,30 @@ class ChunkDumper extends EventEmitter {
 
     debug('starting server')
     this.server.on('line', (line) => {
+      if (line.includes('logged in')) {
+        const [, xStr, yStr, zStr] = line.match(/(?:.+)\[(?:.+)\] logged in with entity id \d+ at \((-?\d+.\d), (-?\d+.\d), (-?\d+.\d)\)/)
+        const vec = new Vec3(+xStr, +yStr, +zStr)
+        const { x, y, z } = vec.floored().add(new Vec3(1, 0, 0))
+        this.server.writeServer(`/setblock ${x} ${y} ${z} ${this.mcData.blocksByName.white_bed ? 'white_bed' : 'bed'}\n`)
+      }
       debug(line)
     })
     await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false', gamemode: 'creative' })
+    this.server.on('line', line => console.log('server: ' + line))
     debug('connecting client')
     this.client = mc.createClient({
       username: 'Player',
       version: this.version,
       port: 25569
     })
-    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }) => {
-      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }))
+    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
+      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
     })
     this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
       this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
     })
     this.client.on('tile_entity_data', ({ location, action, nbtData }) => {
+      console.log('fadshjafdjhfdb')
       this.emit('tile_entity', ({ location, action, nbtData }))
     })
   }
@@ -61,12 +71,13 @@ class ChunkDumper extends EventEmitter {
     await fs.rmdir(path.join(process.cwd(), 'versions'))
   }
 
-  async saveChunk (chunkFile, metaFile, chunkLightFile, lightMetaFile) {
+  async saveChunk (chunkFile, metaFile, chunkLightFile, lightMetaFile, metaEntityFile) {
     await this.saveChunks('', 1, {
       chunkFile,
       metaFile,
       chunkLightFile,
-      lightMetaFile
+      lightMetaFile,
+      metaEntityFile
     })
   }
 
@@ -78,19 +89,24 @@ class ChunkDumper extends EventEmitter {
     }
     const lightsSaved = new Set()
     const chunksSaved = new Set()
+    const tileEntitiesSaved = new Set()
+    // tileEntitiesSaved.add(null)
     await new Promise((resolve, reject) => {
-      let saveChunkLight
+      let saveChunkLight, saveTileEntities
       const saveChunk = async d => {
         const { x, z } = d
         chunksSaved.add(`${x},${z}`)
         let finished = false
 
-        if ((chunksSaved.size === count && !this.withLightPackets) || (([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count &&
-         this.withLightPackets)) {
+        if (
+          (!this.withLightPackets && !this.withTileEntities && chunksSaved.size === count) || // no light or tile ent's
+          (this.withLightPackets && !this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) || // only light
+          (!this.withLightPackets && this.withTileEntities && tileEntitiesSaved.size >= 1) || // only tile entities
+          (this.withTileEntities && this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1) // both tile and light
+        ) {
           this.removeListener('chunk', saveChunk)
-          if (this.withLightPackets) {
-            this.removeListener('chunk_light', saveChunkLight)
-          }
+          if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
+          if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
           finished = true
         }
         try {
@@ -116,9 +132,13 @@ class ChunkDumper extends EventEmitter {
           const { chunkX, chunkZ } = d
           lightsSaved.add(`${chunkX},${chunkZ}`)
           let finished = false
-          if (([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) {
+          if (
+            (!this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) ||
+            (this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1)
+          ) {
             this.removeListener('chunk', saveChunk)
             this.removeListener('chunk_light', saveChunkLight)
+            if (this.saveTileEntities) this.removeListener('tile_entity', saveTileEntities)
             finished = true
           }
           try {
@@ -138,6 +158,38 @@ class ChunkDumper extends EventEmitter {
           }
         }
         this.on('chunk_light', saveChunkLight)
+      }
+
+      if (this.withTileEntities) {
+        saveTileEntities = async d => {
+          const { location: { x, y, z } } = d
+          tileEntitiesSaved.add(`${x},${y},${z}`)
+          let finished = false
+          if (
+            (!this.withLightPackets && tileEntitiesSaved.size >= 1) ||
+            (this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1)
+          ) {
+            this.removeListener('chunk', saveChunk)
+            this.removeListener('tile_entity', saveTileEntities)
+            if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
+            finished = true
+          }
+          try {
+            if (forcedFileNames !== undefined) {
+              await ChunkDumper.saveTileEntityFiles(forcedFileNames.metaEntityFile, d)
+            } else {
+              await ChunkDumper.saveTileEntitiesToFolder(folder, d)
+            }
+            if (finished) {
+              resolve()
+            }
+          } catch (err) {
+            this.removeListener('chunk', saveChunk)
+            this.removeListener('chunk_light', saveChunkLight)
+            reject(err)
+          }
+        }
+        this.on('tile_entity', saveTileEntities)
       }
     })
   }
@@ -171,7 +223,7 @@ class ChunkDumper extends EventEmitter {
     if (this.withTileEntities) {
       this.savingTileEntity = async d => {
         try {
-          await ChunkDumper.saveTileEntites(folder, d)
+          await ChunkDumper.saveTileEntitiesToFolder(folder, d)
         } catch (err) {
           this.stopSavingChunks()
           throw err
@@ -187,10 +239,10 @@ class ChunkDumper extends EventEmitter {
       path.join(folder, 'chunk_' + x + '_' + z + '.meta'), d)
   }
 
-  static async saveChunkFiles (chunkDataFile, chunkMetaFile, { x, z, groundUp, bitMap, biomes, chunkData }) {
+  static async saveChunkFiles (chunkDataFile, chunkMetaFile, { x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) {
     await fs.writeFile(chunkDataFile, chunkData)
     await fs.writeFile(chunkMetaFile, JSON.stringify({
-      x, z, groundUp, bitMap, biomes
+      x, z, groundUp, bitMap, biomes, blockEntities
     }), 'utf8')
   }
 
@@ -200,7 +252,7 @@ class ChunkDumper extends EventEmitter {
       path.join(folder, 'chunk_light_' + chunkX + '_' + chunkZ + '.meta'), d)
   }
 
-  static async saveTileEntites (folder, d) {
+  static async saveTileEntitiesToFolder (folder, d) {
     const { location: { x, y, z } } = d
     await ChunkDumper.saveTileEntityFiles(path.join(folder, `tile_entity_${x}_${y}_${z}.meta`), d)
   }
@@ -220,8 +272,8 @@ class ChunkDumper extends EventEmitter {
     }), 'utf8')
   }
 
-  static async saveTileEntityFiles (tileEntityDataFile, { location, action, nbtData }) {
-    await fs.writeFile(tileEntityDataFile, JSON.stringify({
+  static async saveTileEntityFiles (tileEntityMetaFile, { location, action, nbtData }) {
+    await fs.writeFile(tileEntityMetaFile, JSON.stringify({
       location,
       action,
       nbtData
