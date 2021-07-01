@@ -26,10 +26,10 @@ Usage:
     minecraftChunkDumper [command] <minecraft-version> <options>
 
 Example:
-    minecraftChunkDumper saveChunk "1.14.4" "chunk.dump" "chunk.meta" "chunk_light.dump" "chunk_light.meta"
+    minecraftChunkDumper saveChunk "1.14.4" "chunk.dump" "chunk.meta" "chunkLight.dump" "chunkLight.meta" "tileEntities.meta"
 
 Commands:
-    saveChunk <minecraft-version> <chunk-file> <meta-file>    save a single chunk file to specified files
+    saveChunk <minecraft-version> <chunk-file> <meta-file> [<chunk-light-file> <meta-light-file> <meta-entity-file>]    save a single chunk file to specified files
     saveChunks <minecraft-version> <folder> <count>           save the specified number of chunks to the given folder
     continuouslySave <minecraft-version> <folder>             continuously saves chunks to the specified folder, until the program is stopped
 ```
@@ -64,7 +64,7 @@ ChunkDumper is a class which can dumps chunk for a given minecraft version.
 
 It saves 2 type of files :
 * Chunk files contain the buffer of the chunk (binary format)
-* Metadata files are json files of that shape : `{"x":-10,"z":-1,"groundUp":true,"bitMap":15,"biomes":[1,2...]}`
+* Metadata files are json files of that shape : `{"x":-10,"z":-1,"groundUp":true,"bitMap":15,"biomes":[1,2...],"blockEntities":[]}`
 
 for more recent versions (starting from 1.14), it also saves chunk light files :
 * Chunk light files contain the buffer of the chunk (binary format)
@@ -93,10 +93,11 @@ Returns a promise when ready.
 Stops the nmp client then stops the server.
 Returns a promise when finished.
 
-#### ChunkDumper.saveChunk(chunkFile, metaFile, chunkLightFile, metaChunkLightFile)
+#### ChunkDumper.saveChunk(chunkFile, metaFile, chunkLightFile, metaChunkLightFile, metaEntityFile)
 
 Save 1 chunk in specified `chunkFile` and `metaFile` 
 Save 1 chunk light in specified `chunkLightFile` and `metaChunkLightFile` 
+Save 1 block entity in specified `metaEntityFile`
 Returns a promise when finished.
 
 #### ChunkDumper.saveChunks(folder, n)
@@ -117,7 +118,7 @@ Continuously saves all chunk and metadata file to folder.
 
 Stops saving chunks
 
-#### "chunk" (x, z, groundUp, bitMap, biomes, chunkData)
+#### "chunk" (x, z, groundUp, bitMap, biomes, chunkData, blockEntities)
 
 Emitted when a chunk is received
 
