@@ -71,8 +71,7 @@ describe('chunkDumper cli', function () {
     }
   })
 
-  it('can download 10 chunks', async function () {
-    this.timeout(5 * 60 * 1000)
+  it('can download 10 chunks', async () => {
     const { stdout } = await exec(`${CMD} saveChunks "1.15.2" "${makeLocalPath('chunks')}" 10`)
     console.log(`Running: ${stdout}`)
     assert(stdout.toLowerCase().includes('successfully'))

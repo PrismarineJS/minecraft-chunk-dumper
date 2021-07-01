@@ -34,7 +34,8 @@ describe('chunkDumper lib', function () {
     }
   })
 
-  it('can save 10 chunks', async () => {
+  it('can save 10 chunks', async function () {
+    this.timeout(5 * 60 * 1000)
     await chunkDumper.saveChunks(makeLocalPath('chunks'), 10)
     const dirContent = await fs.readdir(makeLocalPath('chunks'))
     assert(dirContent.length >= 40, 'should have at least 40 files')
