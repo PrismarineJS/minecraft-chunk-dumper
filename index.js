@@ -53,7 +53,6 @@ class ChunkDumper extends EventEmitter {
       this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
     })
     this.client.on('tile_entity_data', ({ location, action, nbtData }) => {
-      console.log('fadshjafdjhfdb')
       this.emit('tile_entity', ({ location, action, nbtData }))
     })
   }
