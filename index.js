@@ -33,8 +33,14 @@ class ChunkDumper extends EventEmitter {
       if (line.includes('logged in')) {
         const [, xStr, yStr, zStr] = line.match(/(?:.+)\[(?:.+)\] logged in with entity id \d+ at \((-?\d+.\d), (-?\d+.\d), (-?\d+.\d)\)/)
         const vec = new Vec3(+xStr, +yStr, +zStr)
-        const { x, y, z } = vec.floored().add(new Vec3(1, 0, 0))
-        this.server.writeServer(`/setblock ${x} ${y} ${z} ${this.mcData.blocksByName.white_bed ? 'white_bed' : 'bed'}\n`)
+        {
+          const { x, y, z } = vec.floored().add(new Vec3(1, 0, 0))
+          this.server.writeServer(`/setblock ${x} ${y} ${z} ${this.mcData.blocksByName.white_bed ? 'white_bed' : 'bed'}\n`)
+        }
+        // {
+        //   const { x, y, z } = vec.floored().add(new Vec3(-1, 0, 0))
+        //   this.server.writeServer(`/setblock ${x} ${y} ${z} chest\n`)
+        // }
       }
       debug(line)
     })
@@ -89,7 +95,7 @@ class ChunkDumper extends EventEmitter {
     const lightsSaved = new Set()
     const chunksSaved = new Set()
     const tileEntitiesSaved = new Set()
-    // tileEntitiesSaved.add(null)
+    let chunkTileEntitiesSaved = 0 // tile entities saved in chunk packets
     await new Promise((resolve, reject) => {
       let saveChunkLight, saveTileEntities
       const saveChunk = async d => {
@@ -108,6 +114,8 @@ class ChunkDumper extends EventEmitter {
           if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
           finished = true
         }
+        if (this.withTileEntities && chunkTileEntitiesSaved === 0 && d.blockEntities.length === 0) return
+        chunkTileEntitiesSaved++
         try {
           if (forcedFileNames !== undefined) {
             await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
