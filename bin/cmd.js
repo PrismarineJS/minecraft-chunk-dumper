@@ -22,7 +22,7 @@ if (['saveChunk', 'saveChunks', 'continuouslySave'].indexOf(command) !== -1 && a
 } else if (command === 'version' || argv.version) {
   runVersion()
 } else if (command === 'saveChunk') {
-  if (argv._.length !== 4 && argv._.length !== 6 && argv._.length !== 8) {
+  if (argv._.length !== 4 && argv._.length !== 6 && argv._.length !== 7) {
     runHelp()
   } else {
     const version = argv._[1]
