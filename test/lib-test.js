@@ -4,7 +4,6 @@ const version = '1.15.2'
 const ChunkDumper = require('../index.js')
 const chunkDumper = new ChunkDumper(version)
 const fs = require('fs').promises
-const path = require('path')
 const assert = require('assert')
 const fsOriginal = require('fs')
 const { makeLocalPath } = require('./util')
@@ -36,13 +35,17 @@ describe('chunkDumper lib', function () {
 
   it('can save 10 chunks', async function () {
     this.timeout(5 * 60 * 1000)
+    console.log('Start dumping 10 chunks')
     await chunkDumper.saveChunks(makeLocalPath('chunks'), 10)
+    console.log('done dumping 10 chunks')
     const dirContent = await fs.readdir(makeLocalPath('chunks'))
+    console.log('done fs.readdir')
     assert(dirContent.length >= 40, 'should have at least 40 files')
     for (const file of dirContent) {
       await fs.unlink(makeLocalPath('chunks', file))
     }
     await fs.rmdir(makeLocalPath('chunks'))
+    console.log('done cleaning files')
   })
 
   it('can save chunks continuously', async () => {
@@ -57,7 +60,7 @@ describe('chunkDumper lib', function () {
     for (const file of dirContent) {
       await fs.unlink(makeLocalPath('chunks', file))
     }
-    await fs.rmdir(path.join(__dirname, 'chunks'))
+    await fs.rmdir(makeLocalPath('chunks'))
   })
 
   after('can stop', async () => {

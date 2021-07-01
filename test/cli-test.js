@@ -3,13 +3,12 @@
 const assert = require('assert')
 const util = require('util')
 const fs = require('fs').promises
-const path = require('path')
 const exec = util.promisify(require('child_process').exec)
 const { spawn } = require('child_process')
 const fsOriginal = require('fs')
 const { makeLocalPath } = require('./util')
 
-const CMD_PATH = path.resolve(__dirname, '..', 'bin', 'cmd.js')
+const CMD_PATH = makeLocalPath('..', 'bin', 'cmd.js')
 const CMD = 'node ' + CMD_PATH
 
 describe('chunkDumper cli', function () {
