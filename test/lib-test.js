@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 
-const version = '1.16.5'
+const version = '1.15.2'
 const ChunkDumper = require('../index.js')
 const chunkDumper = new ChunkDumper(version)
 const fs = require('fs').promises
