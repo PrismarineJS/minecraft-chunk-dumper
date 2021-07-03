@@ -3,7 +3,6 @@ const WrapServer = require('minecraft-wrap').WrapServer
 const downloadServer = require('minecraft-wrap').downloadServer
 const path = require('path')
 const os = require('os')
-const { Vec3 } = require('vec3')
 const MC_SERVER_PATH = path.join(os.tmpdir(), 'server')
 const MC_SERVER_JAR = path.join(os.tmpdir(), 'server.jar')
 const fs = require('fs').promises
@@ -22,30 +21,19 @@ class ChunkDumper extends EventEmitter {
 
   async start () {
     debug('downloading server')
-    await util.promisify(downloadServer)(this.version, MC_SERVER_JAR)
+    await new Promise((resolve, reject) => {
+      downloadServer(this.version, MC_SERVER_JAR, resolve)
+    })
+    debug('done downloading server')
     this.server = new WrapServer(MC_SERVER_JAR, MC_SERVER_PATH)
     this.server.startServerAsync = util.promisify(this.server.startServer)
     this.server.stopServerAsync = util.promisify(this.server.stopServer)
-    this.server.deleteServerDataAsync = util.promisify(this.server.deleteServerData)
 
     debug('starting server')
     this.server.on('line', (line) => {
-      if (line.includes('logged in')) {
-        const [, xStr, yStr, zStr] = line.match(/(?:.+)\[(?:.+)\] logged in with entity id \d+ at \((-?\d+.\d), (-?\d+.\d), (-?\d+.\d)\)/)
-        const vec = new Vec3(+xStr, +yStr, +zStr)
-        {
-          const { x, y, z } = vec.floored().add(new Vec3(1, 0, 0))
-          this.server.writeServer(`/setblock ${x} ${y} ${z} ${this.mcData.blocksByName.white_bed ? 'white_bed' : 'bed'}\n`)
-        }
-        // {
-        //   const { x, y, z } = vec.floored().add(new Vec3(-1, 0, 0))
-        //   this.server.writeServer(`/setblock ${x} ${y} ${z} chest\n`)
-        // }
-      }
       debug(line)
     })
     await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false', gamemode: 'creative' })
-    this.server.on('line', line => console.log('server: ' + line))
     debug('connecting client')
     this.client = mc.createClient({
       username: 'Player',
@@ -67,13 +55,11 @@ class ChunkDumper extends EventEmitter {
     this.client.end()
     debug('stopping server')
     await this.server.stopServerAsync()
-    debug('deleting data')
-    await this.server.deleteServerDataAsync()
     debug('deleting server')
-    await fs.unlink(MC_SERVER_JAR)
-    await fs.unlink(path.join(process.cwd(), 'versions', this.version, this.version + '.json'))
-    await fs.rmdir(path.join(process.cwd(), 'versions', this.version))
-    await fs.rmdir(path.join(process.cwd(), 'versions'))
+    await fs.rm(this.server.MC_SERVER_PATH, { force: true, recursive: true })
+    debug('deleting data')
+    await fs.rm('versions', { force: true, recursive: true })
+    debug('done deleting data')
   }
 
   async saveChunk (chunkFile, metaFile, chunkLightFile, lightMetaFile, metaEntityFile) {
@@ -89,13 +75,11 @@ class ChunkDumper extends EventEmitter {
   async saveChunks (folder, count, forcedFileNames = undefined) {
     try {
       await fs.mkdir(folder)
-    } catch (err) {
-
-    }
+    } catch (err) {}
     const lightsSaved = new Set()
     const chunksSaved = new Set()
     const tileEntitiesSaved = new Set()
-    let chunkTileEntitiesSaved = 0 // tile entities saved in chunk packets
+    let chunkTileEntitiesSaved = false // has recieved chunk packet w/ tile entities
     await new Promise((resolve, reject) => {
       let saveChunkLight, saveTileEntities
       const saveChunk = async d => {
@@ -114,8 +98,7 @@ class ChunkDumper extends EventEmitter {
           if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
           finished = true
         }
-        if (this.withTileEntities && chunkTileEntitiesSaved === 0 && d.blockEntities.length === 0) return
-        chunkTileEntitiesSaved++
+        if (!chunkTileEntitiesSaved && d.blockEntities.length !== 0) chunkTileEntitiesSaved = true
         try {
           if (forcedFileNames !== undefined) {
             await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
@@ -197,6 +180,11 @@ class ChunkDumper extends EventEmitter {
           }
         }
         this.on('tile_entity', saveTileEntities)
+        // always have a block entity to record
+        this.server.writeServer(`/op ${this.client.username}\n`)
+        setTimeout(() => {
+          this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
+        }, 100)
       }
     })
   }

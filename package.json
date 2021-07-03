@@ -36,7 +36,6 @@
     "minecraft-data": "^2.86.0",
     "minecraft-protocol": "^1.11.0",
     "minecraft-wrap": "^1.2.3",
-    "minimist": "^1.2.0",
-    "vec3": "^0.1.7"
+    "minimist": "^1.2.0"
   }
 }

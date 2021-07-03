@@ -1,21 +1,34 @@
 /* eslint-env mocha */
 
-const version = '1.15.2'
+const version = '1.16.5'
 const ChunkDumper = require('../index.js')
 const chunkDumper = new ChunkDumper(version)
 const fs = require('fs').promises
 const assert = require('assert')
 const fsOriginal = require('fs')
 const { makeLocalPath } = require('./util')
+const { once } = require('events')
+const debug = require('debug')('chunk-dumper')
+const wait = require('util').promisify(setTimeout)
 
 describe('chunkDumper lib', function () {
-  this.timeout(120000)
-  before('can start', async () => {
+  this.timeout(90 * 1000)
+  beforeEach(async function () {
+    this.timeout(180 * 1000)
+    debug('starting start')
     await chunkDumper.start()
+    await wait(1000)
+    debug('done start')
+  })
+  afterEach(async function () {
+    this.timeout(180 * 1000)
+    debug('starting stop')
+    await chunkDumper.stop()
+    debug('done stop')
   })
 
   it('can receive a chunk event', async () => {
-    await new Promise(resolve => chunkDumper.on('chunk', () => resolve()))
+    await once(chunkDumper, 'chunk')
   })
 
   it('can save a chunk', async () => {
@@ -34,7 +47,6 @@ describe('chunkDumper lib', function () {
   })
 
   it('can save 10 chunks', async function () {
-    this.timeout(5 * 60 * 1000)
     console.log('Start dumping 10 chunks')
     await chunkDumper.saveChunks(makeLocalPath('chunks'), 10)
     console.log('done dumping 10 chunks')
@@ -61,9 +73,5 @@ describe('chunkDumper lib', function () {
       await fs.unlink(makeLocalPath('chunks', file))
     }
     await fs.rmdir(makeLocalPath('chunks'))
-  })
-
-  after('can stop', async () => {
-    await chunkDumper.stop()
   })
 })
