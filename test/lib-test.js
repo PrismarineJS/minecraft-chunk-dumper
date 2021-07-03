@@ -45,17 +45,13 @@ describe('chunkDumper lib', function () {
   })
 
   it('can save 10 chunks', async function () {
-    console.log('Start dumping 10 chunks')
     await chunkDumper.saveChunks(makeLocalPath('chunks'), 10)
-    console.log('done dumping 10 chunks')
     const dirContent = await fs.readdir(makeLocalPath('chunks'))
-    console.log('done fs.readdir')
     assert(dirContent.length >= 40, 'should have at least 40 files')
     for (const file of dirContent) {
       await fs.unlink(makeLocalPath('chunks', file))
     }
     await fs.rmdir(makeLocalPath('chunks'))
-    console.log('done cleaning files')
   })
 
   it('can save chunks continuously', async () => {
