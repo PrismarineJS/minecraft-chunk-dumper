@@ -21,10 +21,7 @@ class ChunkDumper extends EventEmitter {
   }
 
   async start () {
-    try {
-      await fs.rm(MC_SERVER_JAR, { force: true, recursive: true })
-      await fs.rm(MC_SERVER_PATH, { force: true, recursive: true })
-    } catch (e) {}
+    await fs.rm(MC_SERVER_PATH, { force: true, recursive: true })
     debug('downloading server')
     await new Promise((resolve, reject) => {
       downloadServer(this.version, MC_SERVER_JAR, resolve)
