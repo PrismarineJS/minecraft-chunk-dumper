@@ -9,7 +9,6 @@ const fsOriginal = require('fs')
 const { makeLocalPath } = require('./util')
 const { once } = require('events')
 const debug = require('debug')('chunk-dumper')
-const wait = require('util').promisify(setTimeout)
 
 describe('chunkDumper lib', function () {
   this.timeout(90 * 1000)
@@ -17,7 +16,6 @@ describe('chunkDumper lib', function () {
     this.timeout(180 * 1000)
     debug('starting start')
     await chunkDumper.start()
-    await wait(1000)
     debug('done start')
   })
   afterEach(async function () {

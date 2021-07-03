@@ -9,6 +9,7 @@ const fs = require('fs').promises
 const util = require('util')
 const mc = require('minecraft-protocol')
 const debug = require('debug')('chunk-dumper')
+const wait = require('util').promisify(setTimeout)
 
 class ChunkDumper extends EventEmitter {
   constructor (version) {
@@ -49,6 +50,7 @@ class ChunkDumper extends EventEmitter {
     this.client.on('tile_entity_data', ({ location, action, nbtData }) => {
       this.emit('tile_entity', ({ location, action, nbtData }))
     })
+    await wait(1000)
   }
 
   async stop () {
