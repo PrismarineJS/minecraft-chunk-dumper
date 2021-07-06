@@ -116,19 +116,18 @@ class ChunkDumper extends EventEmitter {
       const savePacket = async (packetType, d, finished) => {
         try {
           switch (packetType) {
-            // -1 from .size since we increment sizse before we save
             case 'chunk':
-              if (chunksSaved.size - 1 > count) break
+              if (chunksSaved.size > count) break
               if (forcedFileNames !== undefined) await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
               else await ChunkDumper.saveChunkFilesToFolder(folder, d)
               break
             case 'light':
-              if (lightsSaved.size - 1 > count) break
+              if (lightsSaved.size > count) break
               if (forcedFileNames !== undefined) await ChunkDumper.saveChunkLightFiles(forcedFileNames.chunkLightFile, forcedFileNames.lightMetaFile, d)
               else await ChunkDumper.saveChunkLightFilesToFolder(folder, d)
               break
             case 'tileEntity':
-              if (tileEntitiesSaved.size - 1 > count) break
+              if (tileEntitiesSaved.size > count) break
               if (forcedFileNames !== undefined) await ChunkDumper.saveTileEntityFiles(forcedFileNames.metaEntityFile, d)
               else await ChunkDumper.saveTileEntitiesToFolder(folder, d)
               break
