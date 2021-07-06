@@ -35,12 +35,12 @@ class ChunkDumper extends EventEmitter {
     this.server.on('line', (line) => {
       debug(line)
     })
-    await this.server.startServerAsync({ 'server-port': 35999, 'online-mode': 'false', gamemode: 'creative' })
+    await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false', gamemode: 'creative' })
     debug('connecting client')
     this.client = mc.createClient({
       username: 'Player',
       version: this.version,
-      port: 35999
+      port: 25569
     })
     this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
       this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
