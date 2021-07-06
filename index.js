@@ -13,7 +13,7 @@ const debug = require('debug')('chunk-dumper')
 class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
-    this.version = version
+    this.version = version.toString()
     this.mcData = require('minecraft-data')(version)
     this.withLightPackets = this.mcData.isNewerOrEqualTo('1.14')
     this.withTileEntities = true
@@ -23,7 +23,10 @@ class ChunkDumper extends EventEmitter {
     await fs.rm(MC_SERVER_PATH, { force: true, recursive: true })
     debug('downloading server')
     await new Promise((resolve, reject) => {
-      downloadServer(this.version, MC_SERVER_JAR, resolve)
+      downloadServer(this.version, MC_SERVER_JAR, (err, data) => {
+        if (err) reject(err)
+        resolve(data)
+      })
     })
     debug('done downloading server')
     this.server = new WrapServer(MC_SERVER_JAR, MC_SERVER_PATH)
@@ -91,15 +94,15 @@ class ChunkDumper extends EventEmitter {
         if (
           (!this.withLightPackets && !this.withTileEntities && chunksSaved.size === count) || // no light or tile ent's
           (this.withLightPackets && !this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) || // only light
-          (!this.withLightPackets && this.withTileEntities && tileEntitiesSaved.size >= 1) || // only tile entities
-          (this.withTileEntities && this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1) // both tile and light
+          (!this.withLightPackets && this.withTileEntities && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved) || // only tile entities
+          (this.withTileEntities && this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved) // both tile and light
         ) {
           this.removeListener('chunk', saveChunk)
           if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
           if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
           finished = true
         }
-        if (!chunkTileEntitiesSaved && d.blockEntities.length !== 0) chunkTileEntitiesSaved = true
+        if (!chunkTileEntitiesSaved && d.blockEntities?.length !== 0) chunkTileEntitiesSaved = true
         try {
           if (forcedFileNames !== undefined) {
             await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
@@ -125,7 +128,7 @@ class ChunkDumper extends EventEmitter {
           let finished = false
           if (
             (!this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) ||
-            (this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1)
+            (this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved)
           ) {
             this.removeListener('chunk', saveChunk)
             this.removeListener('chunk_light', saveChunkLight)
@@ -157,8 +160,8 @@ class ChunkDumper extends EventEmitter {
           tileEntitiesSaved.add(`${x},${y},${z}`)
           let finished = false
           if (
-            (!this.withLightPackets && tileEntitiesSaved.size >= 1) ||
-            (this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1)
+            (!this.withLightPackets && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved) ||
+            (this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved)
           ) {
             this.removeListener('chunk', saveChunk)
             this.removeListener('tile_entity', saveTileEntities)
