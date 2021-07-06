@@ -55,8 +55,7 @@ describe('chunkDumper cli', function () {
       makeLocalPath('chunk.dump'),
       makeLocalPath('chunk.meta'),
       makeLocalPath('chunk_light.dump'),
-      makeLocalPath('chunk_light.meta'),
-      makeLocalPath('tileEntities.meta')
+      makeLocalPath('chunk_light.meta')
     ]
     const cm = `${CMD} saveChunk "1.15.2" ${filesPaths.map(o => `"${o}"`).join(' ')}`
     console.log('running ' + cm)

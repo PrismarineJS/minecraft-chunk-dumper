@@ -22,7 +22,7 @@ if (['saveChunk', 'saveChunks', 'continuouslySave'].indexOf(command) !== -1 && a
 } else if (command === 'version' || argv.version) {
   runVersion()
 } else if (command === 'saveChunk') {
-  if (argv._.length !== 4 && argv._.length !== 6 && argv._.length !== 7) {
+  if (argv._.length !== 4 && argv._.length !== 6) {
     runHelp()
   } else {
     const version = argv._[1]
@@ -30,8 +30,7 @@ if (['saveChunk', 'saveChunks', 'continuouslySave'].indexOf(command) !== -1 && a
     const metaFile = argv._[3]
     const chunkLightFile = argv._[4]
     const metaLightFile = argv._[5]
-    const metaEntityFile = argv._[6]
-    runSaveChunk(version, chunkFile, metaFile, chunkLightFile, metaLightFile, metaEntityFile)
+    runSaveChunk(version, chunkFile, metaFile, chunkLightFile, metaLightFile)
   }
 } else if (command === 'saveChunks') {
   if (argv._.length !== 4) {
@@ -66,10 +65,10 @@ function runHelp () {
     minecraftChunkDumper [command] <minecraft-version> <options>
 
   Example:
-      minecraftChunkDumper saveChunk "1.14.4" "chunk.dump" "chunk.meta" "chunkLight.dump" "chunkLight.meta" "tileEntities.meta"
+      minecraftChunkDumper saveChunk "1.14.4" "chunk.dump" "chunk.meta" "chunkLight.dump" "chunkLight.meta"
 
   Commands:
-      saveChunk <minecraft-version> <chunk-file> <meta-file> [<chunk-light-file> <meta-light-file> <meta-entity-file>]    save a single chunk file to specified files
+      saveChunk <minecraft-version> <chunk-file> <meta-file> [<chunk-light-file> <meta-light-file>]    save a single chunk file to specified files
       saveChunks <minecraft-version> <folder> <count>           save the specified number of chunks to the given folder
       continuouslySave <minecraft-version> <folder>             continuously saves chunks to the specified folder, until the program is stopped
   `)

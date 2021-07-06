@@ -34,8 +34,7 @@ describe('chunkDumper lib', function () {
       makeLocalPath('chunk.dump'),
       makeLocalPath('chunk.meta'),
       makeLocalPath('chunk_light.dump'),
-      makeLocalPath('chunk_light.meta'),
-      makeLocalPath('tileEntities.meta')
+      makeLocalPath('chunk_light.meta')
     ]
     await chunkDumper.saveChunk(...filesPaths)
     for (const file of filesPaths) {

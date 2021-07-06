@@ -16,7 +16,6 @@ class ChunkDumper extends EventEmitter {
     this.version = version.toString()
     this.mcData = require('minecraft-data')(this.version)
     this.withLightPackets = this.mcData.isNewerOrEqualTo('1.14')
-    this.withTileEntities = true
   }
 
   async start () {
@@ -49,9 +48,6 @@ class ChunkDumper extends EventEmitter {
     })
     this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
       this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
-    })
-    this.client.on('tile_entity_data', ({ location, action, nbtData }) => {
-      this.emit('tile_entity', ({ location, action, nbtData }))
     })
   }
 
@@ -86,11 +82,8 @@ class ChunkDumper extends EventEmitter {
       } else { // has enough chunk packets
         isDoneCollecting = isDoneCollecting && chunksSaved.size >= count
       }
-      if (this.withTileEntities) {
-        isDoneCollecting = isDoneCollecting && chunkTileEntitiesSaved
-        isDoneCollecting = isDoneCollecting && tileEntitiesSaved.size > 0
-      }
-      console.log('chunksSaved', chunksSaved.size, 'wanted', count, 'chunkTileEntitiesSaved', chunkTileEntitiesSaved, 'tileEntitiesSaved.size', tileEntitiesSaved.size)
+      isDoneCollecting = isDoneCollecting && chunkTileEntitiesSaved
+      console.log('chunksSaved', chunksSaved.size, 'wanted', count, 'chunkTileEntitiesSaved', chunkTileEntitiesSaved)
       return isDoneCollecting
     }
     const removeListeners = () => {
@@ -109,15 +102,15 @@ class ChunkDumper extends EventEmitter {
     try { await fs.mkdir(folder) } catch (err) {}
     const lightsSaved = new Set()
     const chunksSaved = new Set()
-    const tileEntitiesSaved = new Set()
     let chunkTileEntitiesSaved = false // has recieved chunk packet w/ tile entities
-    let saveChunk, saveChunkLight, saveTileEntities
+    let saveChunk, saveChunkLight
     await new Promise((resolve, reject) => {
       const savePacket = async (packetType, d, finished) => {
         try {
           switch (packetType) {
             case 'chunk':
-              if (chunksSaved.size > count) break
+              if (!chunkTileEntitiesSaved && d.blockEntities?.length === 0 && chunksSaved.size > count - 1) break // leave the last chunk packet for if we dont have a blockEntity packet
+              else if (chunkTileEntitiesSaved && chunksSaved.size > count) break
               if (forcedFileNames !== undefined) await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
               else await ChunkDumper.saveChunkFilesToFolder(folder, d)
               break
@@ -126,15 +119,8 @@ class ChunkDumper extends EventEmitter {
               if (forcedFileNames !== undefined) await ChunkDumper.saveChunkLightFiles(forcedFileNames.chunkLightFile, forcedFileNames.lightMetaFile, d)
               else await ChunkDumper.saveChunkLightFilesToFolder(folder, d)
               break
-            case 'tileEntity':
-              if (tileEntitiesSaved.size > count) break
-              if (forcedFileNames !== undefined) await ChunkDumper.saveTileEntityFiles(forcedFileNames.metaEntityFile, d)
-              else await ChunkDumper.saveTileEntitiesToFolder(folder, d)
-              break
           }
-          if (finished) {
-            resolve()
-          }
+          if (finished) resolve()
         } catch (err) {
           removeListeners()
           reject(err)
@@ -158,16 +144,7 @@ class ChunkDumper extends EventEmitter {
         this.on('chunk_light', saveChunkLight)
       }
 
-      if (this.withTileEntities) {
-        saveTileEntities = async d => {
-          tileEntitiesSaved.add(`${d.location.x},${d.location.y},${d.location.z}`)
-          const finished = isDoneCollecting()
-          if (finished) removeListeners()
-          savePacket('tileEntity', d, finished)
-        }
-        this.on('tile_entity', saveTileEntities)
-        generateTileEntity() // always have a tile entity to record
-      }
+      generateTileEntity()
     })
   }
 
@@ -197,17 +174,6 @@ class ChunkDumper extends EventEmitter {
       }
       this.on('chunk_light', this.savingChunkLight)
     }
-    if (this.withTileEntities) {
-      this.savingTileEntity = async d => {
-        try {
-          await ChunkDumper.saveTileEntitiesToFolder(folder, d)
-        } catch (err) {
-          this.stopSavingChunks()
-          throw err
-        }
-      }
-      this.on('tile_entity', this.savingTileEntity)
-    }
   }
 
   static async saveChunkFilesToFolder (folder, d) {
@@ -229,11 +195,6 @@ class ChunkDumper extends EventEmitter {
       path.join(folder, 'chunk_light_' + chunkX + '_' + chunkZ + '.meta'), d)
   }
 
-  static async saveTileEntitiesToFolder (folder, d) {
-    const { location: { x, y, z } } = d
-    await ChunkDumper.saveTileEntityFiles(path.join(folder, `tile_entity_${x}_${y}_${z}.meta`), d)
-  }
-
   static async saveChunkLightFiles (chunkLightDataFile, chunkLightMetaFile, {
     chunkX, chunkZ,
     skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data
@@ -249,18 +210,9 @@ class ChunkDumper extends EventEmitter {
     }), 'utf8')
   }
 
-  static async saveTileEntityFiles (tileEntityMetaFile, { location, action, nbtData }) {
-    await fs.writeFile(tileEntityMetaFile, JSON.stringify({
-      location,
-      action,
-      nbtData
-    }), 'utf8')
-  }
-
   stopSavingChunks () {
     this.removeListener('chunk', this.savingChunk)
     this.removeListener('chunk_light', this.savingChunkLight)
-    this.removeListener('tile_entity', this.savingTileEntity)
   }
 }
 
