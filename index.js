@@ -192,7 +192,7 @@ class ChunkDumper extends EventEmitter {
   }) {
     if (Buffer.isBuffer(data)) {
       await fs.writeFile(chunkLightDataFile, data)
-    } else if (data !== undefined) {
+    } else if (data !== undefined) { // 1.17 doesn't have a data property in their update_light packet
       await fs.writeFile(chunkLightDataFile, JSON.stringify(data))
     }
     await fs.writeFile(chunkLightMetaFile, JSON.stringify({
