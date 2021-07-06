@@ -9,7 +9,6 @@ const fs = require('fs').promises
 const util = require('util')
 const mc = require('minecraft-protocol')
 const debug = require('debug')('chunk-dumper')
-const wait = require('util').promisify(setTimeout)
 
 class ChunkDumper extends EventEmitter {
   constructor (version) {
