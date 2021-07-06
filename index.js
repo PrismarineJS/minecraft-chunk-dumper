@@ -35,12 +35,12 @@ class ChunkDumper extends EventEmitter {
     this.server.on('line', (line) => {
       debug(line)
     })
-    await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false', gamemode: 'creative' })
+    await this.server.startServerAsync({ 'server-port': 35999, 'online-mode': 'false', gamemode: 'creative' })
     debug('connecting client')
     this.client = mc.createClient({
       username: 'Player',
       version: this.version,
-      port: 25569
+      port: 35999
     })
     this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
       this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
@@ -51,7 +51,6 @@ class ChunkDumper extends EventEmitter {
     this.client.on('tile_entity_data', ({ location, action, nbtData }) => {
       this.emit('tile_entity', ({ location, action, nbtData }))
     })
-    await wait(1000)
   }
 
   async stop () {
@@ -184,10 +183,12 @@ class ChunkDumper extends EventEmitter {
         }
         this.on('tile_entity', saveTileEntities)
         // always have a block entity to record
-        this.server.writeServer(`/op ${this.client.username}\n`)
-        setTimeout(() => {
-          this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
-        }, 100)
+        this.client.on('login', () => {
+          this.server.writeServer(`/op ${this.client.username}\n`)
+          setTimeout(() => {
+            this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
+          }, 100)
+        })
       }
     })
   }
