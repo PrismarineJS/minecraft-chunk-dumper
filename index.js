@@ -10,23 +10,10 @@ const util = require('util')
 const mc = require('minecraft-protocol')
 const debug = require('debug')('chunk-dumper')
 
-function flattenMaskArray (sectionBitMask) {
-  // We need to handle arrays specially because protocol will return
-  // array of BigInt on new versions, while we really need an array of 32-bit integers,
-  // with bits sorted from least to most significant ones
-  // BigInt is internally an array, but bits are sorted in the opposite way,
-  // e.g. most significant bits first, so we need to flip it manually before passing to prismarine-chunk
-  // and then flatten the array
-  if (Array.isArray(sectionBitMask)) {
-    return sectionBitMask.map(bigInt => bigInt.reverse()).flat(1)
-  }
-  return sectionBitMask
-}
-
 class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
-    this.version = version
+    this.version = version.toString()
     this.withLightPackets = this.version.includes('1.14') || this.version.includes('1.15') ||
       this.version.includes('1.16') || this.version.includes('1.17')
   }
@@ -50,26 +37,11 @@ class ChunkDumper extends EventEmitter {
       version: this.version,
       port: 25569
     })
-    this.client.on('map_chunk', (packet) => {
-      this.emit('chunk', {
-        x: packet.x,
-        z: packet.z,
-        bitMap: packet.bitMap ?? flattenMaskArray(packet.primaryBitMask),
-        biomes: packet.biomes,
-        groundUp: packet.groundUp,
-        chunkData: packet.chunkData
-      })
+    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }) => {
+      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }))
     })
-    this.client.on('update_light', (packet) => {
-      this.emit('chunk_light', {
-        chunkX: packet.chunkX,
-        chunkZ: packet.chunkZ,
-        skyLightMask: flattenMaskArray(packet.skyLightMask),
-        blockLightMask: flattenMaskArray(packet.blockLightMask),
-        emptySkyLightMask: flattenMaskArray(packet.emptySkyLightMask),
-        emptyBlockLightMask: flattenMaskArray(packet.emptyBlockLightMask),
-        data: packet.data ?? { skyLight: packet.skyLight, blockLight: packet.blockLight }
-      })
+    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
+      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
     })
   }
 
@@ -220,7 +192,7 @@ class ChunkDumper extends EventEmitter {
   }) {
     if (Buffer.isBuffer(data)) {
       await fs.writeFile(chunkLightDataFile, data)
-    } else {
+    } else if (data !== undefined) {
       await fs.writeFile(chunkLightDataFile, JSON.stringify(data))
     }
     await fs.writeFile(chunkLightMetaFile, JSON.stringify({

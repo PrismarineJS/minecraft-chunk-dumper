@@ -36,7 +36,7 @@ if (['saveChunk', 'saveChunks', 'continuouslySave'].indexOf(command) !== -1 && a
   if (argv._.length !== 4) {
     runHelp()
   } else {
-    const version = argv._[1].toString()
+    const version = argv._[1]
     const folder = argv._[2]
     const count = argv._[3]
     runSaveChunks(version, folder, count)
