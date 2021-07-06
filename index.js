@@ -77,120 +77,96 @@ class ChunkDumper extends EventEmitter {
   }
 
   async saveChunks (folder, count, forcedFileNames = undefined) {
-    try {
-      await fs.mkdir(folder)
-    } catch (err) {}
+    count = parseInt(count)
+    const isDoneCollecting = () => {
+      let isDoneCollecting = true
+      const lightArray = Array.from(lightsSaved)
+      if (this.withLightPackets) { // has enough light & chunk packets
+        isDoneCollecting = isDoneCollecting && (lightArray.filter(x => chunksSaved.has(x))).length >= count
+      } else { // has enough chunk packets
+        isDoneCollecting = isDoneCollecting && chunksSaved.size === count
+      }
+      if (this.withTileEntities) {
+        isDoneCollecting = isDoneCollecting && chunkTileEntitiesSaved
+        isDoneCollecting = isDoneCollecting && tileEntitiesSaved.size > 0
+      }
+      return isDoneCollecting
+    }
+    const removeListeners = () => {
+      this.removeListener('chunk', saveChunk)
+      if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
+      if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
+    }
+    const generateTileEntity = () => {
+      setTimeout(() => {
+        this.server.writeServer(`/op ${this.client.username}\n`)
+        setTimeout(() => {
+          this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
+        }, 100)
+      }, 1000)
+    }
+    try { await fs.mkdir(folder) } catch (err) {}
     const lightsSaved = new Set()
     const chunksSaved = new Set()
     const tileEntitiesSaved = new Set()
     let chunkTileEntitiesSaved = false // has recieved chunk packet w/ tile entities
+    let saveChunk, saveChunkLight, saveTileEntities
     await new Promise((resolve, reject) => {
-      let saveChunkLight, saveTileEntities
-      const saveChunk = async d => {
-        const { x, z } = d
-        chunksSaved.add(`${x},${z}`)
-        let finished = false
-
-        if (
-          (!this.withLightPackets && !this.withTileEntities && chunksSaved.size === count) || // no light or tile ent's
-          (this.withLightPackets && !this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) || // only light
-          (!this.withLightPackets && this.withTileEntities && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved) || // only tile entities
-          (this.withTileEntities && this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved) // both tile and light
-        ) {
-          this.removeListener('chunk', saveChunk)
-          if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
-          if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
-          finished = true
-        }
-        if (!chunkTileEntitiesSaved && d.blockEntities?.length !== 0) chunkTileEntitiesSaved = true
+      const savePacket = async (packetType, d, finished) => {
         try {
-          if (forcedFileNames !== undefined) {
-            await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
-          } else {
-            await ChunkDumper.saveChunkFilesToFolder(folder, d)
+          switch (packetType) {
+            // -1 from .size since we increment sizse before we save
+            case 'chunk':
+              if (chunksSaved.size - 1 > count) break
+              if (forcedFileNames !== undefined) await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
+              else await ChunkDumper.saveChunkFilesToFolder(folder, d)
+              break
+            case 'light':
+              if (lightsSaved.size - 1 > count) break
+              if (forcedFileNames !== undefined) await ChunkDumper.saveChunkLightFiles(forcedFileNames.chunkLightFile, forcedFileNames.lightMetaFile, d)
+              else await ChunkDumper.saveChunkLightFilesToFolder(folder, d)
+              break
+            case 'tileEntity':
+              if (tileEntitiesSaved.size - 1 > count) break
+              if (forcedFileNames !== undefined) await ChunkDumper.saveTileEntityFiles(forcedFileNames.metaEntityFile, d)
+              else await ChunkDumper.saveTileEntitiesToFolder(folder, d)
+              break
           }
           if (finished) {
             resolve()
           }
         } catch (err) {
-          this.removeListener('chunk', saveChunk)
-          if (this.withLightPackets) {
-            this.removeListener('chunk_light', saveChunkLight)
-          }
+          removeListeners()
           reject(err)
         }
+      }
+      saveChunk = async d => {
+        chunksSaved.add(`${d.x},${d.z}`)
+        const finished = isDoneCollecting()
+        if (finished) removeListeners()
+        if (!chunkTileEntitiesSaved && d.blockEntities?.length !== 0) chunkTileEntitiesSaved = true
+        await savePacket('chunk', d, finished)
       }
       this.on('chunk', saveChunk)
       if (this.withLightPackets) {
         saveChunkLight = async d => {
-          const { chunkX, chunkZ } = d
-          lightsSaved.add(`${chunkX},${chunkZ}`)
-          let finished = false
-          if (
-            (!this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) ||
-            (this.withTileEntities && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved)
-          ) {
-            this.removeListener('chunk', saveChunk)
-            this.removeListener('chunk_light', saveChunkLight)
-            if (this.saveTileEntities) this.removeListener('tile_entity', saveTileEntities)
-            finished = true
-          }
-          try {
-            if (forcedFileNames !== undefined) {
-              await ChunkDumper.saveChunkLightFiles(forcedFileNames.chunkLightFile,
-                forcedFileNames.lightMetaFile, d)
-            } else {
-              await ChunkDumper.saveChunkLightFilesToFolder(folder, d)
-            }
-            if (finished) {
-              resolve()
-            }
-          } catch (err) {
-            this.removeListener('chunk', saveChunk)
-            this.removeListener('chunk_light', saveChunkLight)
-            reject(err)
-          }
+          lightsSaved.add(`${d.chunkX},${d.chunkZ}`)
+          const finished = isDoneCollecting()
+          if (finished) removeListeners()
+          savePacket('light', d, finished)
         }
         this.on('chunk_light', saveChunkLight)
       }
 
       if (this.withTileEntities) {
         saveTileEntities = async d => {
-          const { location: { x, y, z } } = d
-          tileEntitiesSaved.add(`${x},${y},${z}`)
-          let finished = false
-          if (
-            (!this.withLightPackets && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved) ||
-            (this.withLightPackets && ([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count && tileEntitiesSaved.size >= 1 && chunkTileEntitiesSaved)
-          ) {
-            this.removeListener('chunk', saveChunk)
-            this.removeListener('tile_entity', saveTileEntities)
-            if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
-            finished = true
-          }
-          try {
-            if (forcedFileNames !== undefined) {
-              await ChunkDumper.saveTileEntityFiles(forcedFileNames.metaEntityFile, d)
-            } else {
-              await ChunkDumper.saveTileEntitiesToFolder(folder, d)
-            }
-            if (finished) {
-              resolve()
-            }
-          } catch (err) {
-            this.removeListener('chunk', saveChunk)
-            this.removeListener('chunk_light', saveChunkLight)
-            reject(err)
-          }
+          tileEntitiesSaved.add(`${d.location.x},${d.location.y},${d.location.z}`)
+          const finished = isDoneCollecting()
+          if (finished) removeListeners()
+          savePacket('tileEntity', d, finished)
         }
         this.on('tile_entity', saveTileEntities)
-        // always have a block entity to record
-        this.client.on('login', () => {
-          this.server.writeServer(`/op ${this.client.username}\n`)
-          setTimeout(() => {
-            this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
-          }, 100)
-        })
+        generateTileEntity() // always have a tile entity to record
       }
     })
   }
