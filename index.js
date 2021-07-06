@@ -14,8 +14,8 @@ class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
     this.version = version.toString()
-    this.withLightPackets = this.version.includes('1.14') || this.version.includes('1.15') ||
-      this.version.includes('1.16') || this.version.includes('1.17')
+    this.mcData = require('minecraft-data')(this.version)
+    this.withLightPackets = this.mcData.isNewerOrEqualTo('1.14')
   }
 
   async start () {
@@ -40,8 +40,8 @@ class ChunkDumper extends EventEmitter {
     this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }) => {
       this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }))
     })
-    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
-      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
+    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }) => {
+      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }))
     })
   }
 
@@ -69,7 +69,7 @@ class ChunkDumper extends EventEmitter {
 
   async saveChunks (folder, count, forcedFileNames = undefined) {
     try {
-      await fs.mkdir(folder)
+      await fs.mkdir(folder, { recursive: true })
     } catch (err) {
 
     }
@@ -188,7 +188,7 @@ class ChunkDumper extends EventEmitter {
 
   static async saveChunkLightFiles (chunkLightDataFile, chunkLightMetaFile, {
     chunkX, chunkZ,
-    skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data
+    skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data
   }) {
     if (Buffer.isBuffer(data)) {
       await fs.writeFile(chunkLightDataFile, data)
@@ -201,7 +201,9 @@ class ChunkDumper extends EventEmitter {
       skyLightMask,
       blockLightMask,
       emptySkyLightMask,
-      emptyBlockLightMask
+      emptyBlockLightMask,
+      skyLight,
+      blockLight
     }), 'utf8')
   }
 
