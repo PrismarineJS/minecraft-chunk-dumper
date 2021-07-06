@@ -14,7 +14,7 @@ class ChunkDumper extends EventEmitter {
   constructor (version) {
     super()
     this.version = version.toString()
-    this.mcData = require('minecraft-data')(version)
+    this.mcData = require('minecraft-data')(this.version)
     this.withLightPackets = this.mcData.isNewerOrEqualTo('1.14')
     this.withTileEntities = true
   }
@@ -84,12 +84,13 @@ class ChunkDumper extends EventEmitter {
       if (this.withLightPackets) { // has enough light & chunk packets
         isDoneCollecting = isDoneCollecting && (lightArray.filter(x => chunksSaved.has(x))).length >= count
       } else { // has enough chunk packets
-        isDoneCollecting = isDoneCollecting && chunksSaved.size === count
+        isDoneCollecting = isDoneCollecting && chunksSaved.size >= count
       }
       if (this.withTileEntities) {
         isDoneCollecting = isDoneCollecting && chunkTileEntitiesSaved
         isDoneCollecting = isDoneCollecting && tileEntitiesSaved.size > 0
       }
+      console.log('chunksSaved', chunksSaved.size, 'wanted', count, 'chunkTileEntitiesSaved', chunkTileEntitiesSaved, 'tileEntitiesSaved.size', tileEntitiesSaved.size)
       return isDoneCollecting
     }
     const removeListeners = () => {
@@ -103,7 +104,7 @@ class ChunkDumper extends EventEmitter {
         setTimeout(() => {
           this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
         }, 100)
-      }, 1000)
+      }, 2000)
     }
     try { await fs.mkdir(folder) } catch (err) {}
     const lightsSaved = new Set()
