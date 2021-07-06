@@ -89,7 +89,6 @@ class ChunkDumper extends EventEmitter {
     const removeListeners = () => {
       this.removeListener('chunk', saveChunk)
       if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
-      if (this.withTileEntities) this.removeListener('tile_entity', saveTileEntities)
     }
     const generateTileEntity = () => {
       setTimeout(() => {
