@@ -1,5 +1,6 @@
 /* eslint-env mocha */
 
+const version = '1.15.2'
 const assert = require('assert')
 const util = require('util')
 const fs = require('fs').promises
@@ -51,7 +52,7 @@ describe('chunkDumper cli', function () {
   })
 
   it('can download one chunk', async () => {
-    const cm = CMD + ' saveChunk "1.15.2" "' + path.join(__dirname, 'chunk.dump') + '" "' +
+    const cm = CMD + ` saveChunk "${version}" "` + path.join(__dirname, 'chunk.dump') + '" "' +
     path.join(__dirname, 'chunk.meta') + '" "' + path.join(__dirname, 'chunk_light.dump') + '" "' + path.join(__dirname, 'chunk_light.meta') + '"'
     console.log('running ' + cm)
     const { stdout, stderr } = await exec(cm, { env: { DEBUG: 'chunk-dumper' } })
@@ -70,7 +71,7 @@ describe('chunkDumper cli', function () {
   })
 
   it('can download 10 chunks', async () => {
-    const { stdout } = await exec(CMD + ' saveChunks "1.15.2" "' + path.join(__dirname, 'chunks') + '" 10')
+    const { stdout } = await exec(CMD + ` saveChunks "${version}" "` + path.join(__dirname, 'chunks') + '" 10')
     assert(stdout.toLowerCase().includes('successfully'))
 
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
@@ -83,7 +84,7 @@ describe('chunkDumper cli', function () {
 
   it('can continuously save chunks', async () => {
     await new Promise((resolve, reject) => {
-      const child = spawn('node', [CMD_PATH, 'continuouslySave', '1.15.2', path.join(__dirname, 'chunks')])
+      const child = spawn('node', [CMD_PATH, 'continuouslySave', version, path.join(__dirname, 'chunks')])
 
       child.on('error', reject)
 
