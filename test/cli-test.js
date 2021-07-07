@@ -1,5 +1,6 @@
 /* eslint-env mocha */
 
+const version = '1.15.2'
 const assert = require('assert')
 const util = require('util')
 const fs = require('fs').promises
@@ -85,7 +86,6 @@ describe('chunkDumper cli', function () {
   it('can continuously save chunks', async () => {
     await new Promise((resolve, reject) => {
       const child = spawn('node', [CMD_PATH, 'continuouslySave', '1.15.2', makeLocalPath('chunks')])
-
       child.on('error', reject)
 
       child.stdout.on('data', (data) => {
