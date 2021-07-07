@@ -58,7 +58,7 @@ describe('chunkDumper cli', function () {
       makeLocalPath('chunk_light.dump'),
       makeLocalPath('chunk_light.meta')
     ]
-    const cm = `${CMD} saveChunk "1.15.2" ${filesPaths.map(o => `"${o}"`).join(' ')}`
+    const cm = `${CMD} saveChunk "${version}" ${filesPaths.map(o => `"${o}"`).join(' ')}`
     console.log('running ' + cm)
     const { stdout, stderr } = await exec(cm, { env: { DEBUG: 'chunk-dumper' } })
     console.log('stdout:' + stdout)
@@ -71,7 +71,7 @@ describe('chunkDumper cli', function () {
   })
 
   it('can download 10 chunks', async () => {
-    const { stdout } = await exec(`${CMD} saveChunks "1.15.2" "${makeLocalPath('chunks')}" 10`)
+    const { stdout } = await exec(`${CMD} saveChunks "${version}" "${makeLocalPath('chunks')}" 10`)
     console.log(`Running: ${stdout}`)
     assert(stdout.toLowerCase().includes('successfully'))
 
@@ -85,7 +85,7 @@ describe('chunkDumper cli', function () {
 
   it('can continuously save chunks', async () => {
     await new Promise((resolve, reject) => {
-      const child = spawn('node', [CMD_PATH, 'continuouslySave', '1.15.2', makeLocalPath('chunks')])
+      const child = spawn('node', [CMD_PATH, 'continuouslySave', version, makeLocalPath('chunks')])
       child.on('error', reject)
 
       child.stdout.on('data', (data) => {
