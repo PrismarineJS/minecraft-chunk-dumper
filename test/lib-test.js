@@ -12,18 +12,23 @@ const debug = require('debug')('chunk-dumper')
 
 describe('chunkDumper lib', function () {
   this.timeout(90 * 1000)
-  beforeEach(async function () {
+  before(async function () {
     this.timeout(180 * 1000)
     debug('starting start')
     await chunkDumper.start()
     debug('done start')
+    chunkDumper.client.end()
   })
-  afterEach(async function () {
+  after(async () => {
     this.timeout(180 * 1000)
     debug('starting stop')
     await chunkDumper.stop()
     debug('done stop')
   })
+  beforeEach(async () => {
+    await chunkDumper.logBackIn()
+  })
+  afterEach(() => chunkDumper.client.end())
 
   it('can receive a chunk event', async () => {
     await once(chunkDumper, 'chunk')

@@ -31,6 +31,7 @@ class ChunkDumper extends EventEmitter {
     this.server = new WrapServer(MC_SERVER_JAR, MC_SERVER_PATH)
     this.server.startServerAsync = util.promisify(this.server.startServer)
     this.server.stopServerAsync = util.promisify(this.server.stopServer)
+    this.server.deleteServerDataAsync = util.promisify(this.server.deleteServerData)
 
     debug('starting server')
     this.server.on('line', (line) => {
@@ -38,6 +39,20 @@ class ChunkDumper extends EventEmitter {
     })
     await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false', gamemode: 'creative' })
     debug('connecting client')
+    this.client = mc.createClient({
+      username: 'Player',
+      version: this.version,
+      port: 25569
+    })
+    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
+      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
+    })
+    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
+      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
+    })
+  }
+
+  async logBackIn () {
     this.client = mc.createClient({
       username: 'Player',
       version: this.version,
@@ -98,7 +113,7 @@ class ChunkDumper extends EventEmitter {
         }, 100)
       }, 2000)
     }
-    try { await fs.mkdir(folder) } catch (err) {}
+    try { await fs.mkdir(folder, { recursive: true }) } catch (err) {}
     const lightsSaved = new Set()
     const chunksSaved = new Set()
     let chunkTileEntitiesSaved = false // has recieved chunk packet w/ tile entities
