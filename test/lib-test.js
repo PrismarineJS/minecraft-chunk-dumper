@@ -12,14 +12,20 @@ const debug = require('debug')('chunk-dumper')
 
 describe('chunkDumper lib', function () {
   this.timeout(90 * 1000)
+  // before: make server and client but log out after the client recieves the login packet
+  // beforeEach: make the client so we can verify we will always get the chunks
+  // afterEach: make the client leave so we can remake the listeners in the next beforeEach
+  // after: close the server and delete server data
   before(async function () {
     this.timeout(180 * 1000)
     debug('starting start')
     await chunkDumper.start()
+    await once(chunkDumper.client, 'login')
     debug('done start')
     chunkDumper.client.end()
+    await once(chunkDumper.client, 'end')
   })
-  after(async () => {
+  after(async function () {
     this.timeout(180 * 1000)
     debug('starting stop')
     await chunkDumper.stop()
@@ -28,7 +34,11 @@ describe('chunkDumper lib', function () {
   beforeEach(async () => {
     await chunkDumper.logBackIn()
   })
-  afterEach(() => chunkDumper.client.end())
+  afterEach(async () => {
+    if (!chunkDumper.client.state === 'play') await once(chunkDumper.client, 'login')
+    chunkDumper.client.end()
+    await once(chunkDumper.client, 'end')
+  })
 
   it('can receive a chunk event', async () => {
     await once(chunkDumper, 'chunk')
@@ -48,13 +58,16 @@ describe('chunkDumper lib', function () {
     }
   })
 
-  it('can save 10 chunks', async function () {
+  it('can save 10 chunks', async () => {
     await chunkDumper.saveChunks(makeLocalPath('chunks'), 10)
     const dirContent = await fs.readdir(makeLocalPath('chunks'))
-    assert(dirContent.length >= 40, 'should have at least 40 files')
+    console.log(dirContent.length)
+    assert(dirContent.length === 40, 'should have at least 40 files')
     for (const file of dirContent) {
       await fs.unlink(makeLocalPath('chunks', file))
     }
+    const whatsLeft = await fs.readdir(makeLocalPath('chunks'))
+    console.log('whatsLeft?', JSON.stringify(whatsLeft, null, 2))
     await fs.rmdir(makeLocalPath('chunks'))
   })
 

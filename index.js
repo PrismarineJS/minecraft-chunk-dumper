@@ -9,6 +9,7 @@ const fs = require('fs').promises
 const util = require('util')
 const mc = require('minecraft-protocol')
 const debug = require('debug')('chunk-dumper')
+const wait = util.promisify(setTimeout)
 
 class ChunkDumper extends EventEmitter {
   constructor (version) {
@@ -47,8 +48,8 @@ class ChunkDumper extends EventEmitter {
     this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
       this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
     })
-    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }) => {
-      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, data }))
+    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }) => {
+      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }))
     })
   }
 
@@ -88,73 +89,82 @@ class ChunkDumper extends EventEmitter {
   }
 
   async saveChunks (folder, count, forcedFileNames = undefined) {
+    let stillRunning = true // needed so we dont send the chat message after the client is .end'ed
     count = parseInt(count)
     const isDoneCollecting = () => {
       let isDoneCollecting = true
-      const lightArray = Array.from(lightsSaved)
+      // const lightArray = Array.from(lightsSaved)
+      /*
       if (this.withLightPackets) { // has enough light & chunk packets
-        isDoneCollecting = isDoneCollecting && (lightArray.filter(x => chunksSaved.has(x))).length >= count
+        console.log(`${(lightArray.filter(x => chunksSaved.has(x))).length}/${count}`)
+        isDoneCollecting = isDoneCollecting && (lightArray.filter(x => chunksSaved.has(x))).length >= count + 1
       } else { // has enough chunk packets
         isDoneCollecting = isDoneCollecting && chunksSaved.size >= count
       }
+      */
+      console.log('chunksSaved.size', chunksSaved.size, 'lightsSaved.size', lightsSaved.size, 'count', count)
+      isDoneCollecting = isDoneCollecting && (chunksSaved.size === count && lightsSaved.size === count)
       isDoneCollecting = isDoneCollecting && chunkTileEntitiesSaved
-      console.log('chunksSaved', chunksSaved.size, 'wanted', count, 'chunkTileEntitiesSaved', chunkTileEntitiesSaved)
       return isDoneCollecting
     }
     const removeListeners = () => {
       this.removeListener('chunk', saveChunk)
       if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
     }
-    const generateTileEntity = () => {
-      setTimeout(() => {
+    const generateTileEntity = async () => {
+      await wait(2000)
+      if (!chunkTileEntitiesSaved && stillRunning) {
         this.server.writeServer(`/op ${this.client.username}\n`)
-        setTimeout(() => {
-          this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
-        }, 100)
-      }, 2000)
+        await wait(100)
+        if (stillRunning) this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
+      }
     }
     try { await fs.mkdir(folder, { recursive: true }) } catch (err) {}
     const lightsSaved = new Set()
     const chunksSaved = new Set()
+    const commonChunks = new Set()
     let chunkTileEntitiesSaved = false // has recieved chunk packet w/ tile entities
     let saveChunk, saveChunkLight
     await new Promise((resolve, reject) => {
-      const savePacket = async (packetType, d, finished) => {
+      const savePacket = async (packetType, d) => {
+        const positionString = packetType === 'chunk' ? `${d.x},${d.z}` : `${d.chunkX},${d.chunkZ}` // type ? 'chunk' : 'light'
+        if (!commonChunks.has(positionString) && commonChunks.size <= (chunkTileEntitiesSaved ? count : count - 1)) {
+          commonChunks.add(positionString)
+        } else if (!commonChunks.has(positionString)) return // only want chunks that match their light chunk data
         try {
           switch (packetType) {
             case 'chunk':
-              if (!chunkTileEntitiesSaved && d.blockEntities?.length === 0 && chunksSaved.size > count - 1) break // leave the last chunk packet for if we dont have a blockEntity packet
-              else if (chunkTileEntitiesSaved && chunksSaved.size > count) break
+              if (!chunkTileEntitiesSaved && chunksSaved.size >= count) break // leave the last chunk packet for if we dont have a blockEntity packet
+              else if (chunkTileEntitiesSaved && chunksSaved.size >= count) break
+              chunksSaved.add(positionString)
               if (forcedFileNames !== undefined) await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
               else await ChunkDumper.saveChunkFilesToFolder(folder, d)
               break
             case 'light':
+              lightsSaved.add(positionString)
               if (lightsSaved.size > count) break
               if (forcedFileNames !== undefined) await ChunkDumper.saveChunkLightFiles(forcedFileNames.chunkLightFile, forcedFileNames.lightMetaFile, d)
               else await ChunkDumper.saveChunkLightFilesToFolder(folder, d)
               break
           }
-          if (finished) resolve()
+          if (isDoneCollecting()) {
+            removeListeners()
+            stillRunning = false
+            resolve()
+          }
         } catch (err) {
           removeListeners()
+          stillRunning = false
           reject(err)
         }
       }
       saveChunk = async d => {
-        chunksSaved.add(`${d.x},${d.z}`)
-        const finished = isDoneCollecting()
-        if (finished) removeListeners()
         if (!chunkTileEntitiesSaved && d.blockEntities?.length !== 0) chunkTileEntitiesSaved = true
-        await savePacket('chunk', d, finished)
+        await savePacket('chunk', d)
       }
       this.on('chunk', saveChunk)
       if (this.withLightPackets) {
-        saveChunkLight = async d => {
-          lightsSaved.add(`${d.chunkX},${d.chunkZ}`)
-          const finished = isDoneCollecting()
-          if (finished) removeListeners()
-          savePacket('light', d, finished)
-        }
+        saveChunkLight = async d => savePacket('light', d)
         this.on('chunk_light', saveChunkLight)
       }
 

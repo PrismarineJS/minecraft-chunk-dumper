@@ -74,7 +74,7 @@ function runHelp () {
   `)
 }
 
-async function runSaveChunk (version, chunkFile, metaFile, chunkLightFile, metaLightFile, metaEntityFile) {
+async function runSaveChunk (version, chunkFile, metaFile, chunkLightFile, metaLightFile) {
   const ChunkDumper = require('../index.js')
   const chunkDumper = new ChunkDumper(version)
 
@@ -82,13 +82,11 @@ async function runSaveChunk (version, chunkFile, metaFile, chunkLightFile, metaL
   await chunkDumper.start()
   console.log('Saving chunk in ' + chunkFile + ' and ' + metaFile + '.')
   console.log('Saving chunk light in ' + chunkLightFile + ' and ' + metaLightFile + '.')
-  console.log('Saving tile entities in ' + metaEntityFile + '.')
-  await chunkDumper.saveChunk(chunkFile, metaFile, chunkLightFile, metaLightFile, metaEntityFile)
+  await chunkDumper.saveChunk(chunkFile, metaFile, chunkLightFile, metaLightFile)
   console.log('Stopping server...')
   await chunkDumper.stop()
   console.log('Chunk successfully saved at ' + chunkFile + ' and ' + metaFile)
   console.log('Chunk light successfully saved at ' + chunkLightFile + ' and ' + metaLightFile)
-  console.log('Tile entities successfully saved at ' + metaEntityFile)
   process.exit(0)
 }
 
