@@ -35,7 +35,7 @@ describe('chunkDumper lib', function () {
     await chunkDumper.logBackIn()
   })
   afterEach(async () => {
-    if (!chunkDumper.client.state === 'play') await once(chunkDumper.client, 'login')
+    if (chunkDumper.client.state !== 'play') await once(chunkDumper.client, 'login')
     chunkDumper.client.end()
     await once(chunkDumper.client, 'end')
   })
@@ -61,13 +61,10 @@ describe('chunkDumper lib', function () {
   it('can save 10 chunks', async () => {
     await chunkDumper.saveChunks(makeLocalPath('chunks'), 10)
     const dirContent = await fs.readdir(makeLocalPath('chunks'))
-    console.log(dirContent.length)
     assert(dirContent.length === 40, 'should have at least 40 files')
     for (const file of dirContent) {
       await fs.unlink(makeLocalPath('chunks', file))
     }
-    const whatsLeft = await fs.readdir(makeLocalPath('chunks'))
-    console.log('whatsLeft?', JSON.stringify(whatsLeft, null, 2))
     await fs.rmdir(makeLocalPath('chunks'))
   })
 

@@ -91,22 +91,7 @@ class ChunkDumper extends EventEmitter {
   async saveChunks (folder, count, forcedFileNames = undefined) {
     let stillRunning = true // needed so we dont send the chat message after the client is .end'ed
     count = parseInt(count)
-    const isDoneCollecting = () => {
-      let isDoneCollecting = true
-      // const lightArray = Array.from(lightsSaved)
-      /*
-      if (this.withLightPackets) { // has enough light & chunk packets
-        console.log(`${(lightArray.filter(x => chunksSaved.has(x))).length}/${count}`)
-        isDoneCollecting = isDoneCollecting && (lightArray.filter(x => chunksSaved.has(x))).length >= count + 1
-      } else { // has enough chunk packets
-        isDoneCollecting = isDoneCollecting && chunksSaved.size >= count
-      }
-      */
-      console.log('chunksSaved.size', chunksSaved.size, 'lightsSaved.size', lightsSaved.size, 'count', count)
-      isDoneCollecting = isDoneCollecting && (chunksSaved.size === count && lightsSaved.size === count)
-      isDoneCollecting = isDoneCollecting && chunkTileEntitiesSaved
-      return isDoneCollecting
-    }
+    const isDoneCollecting = () => chunksSaved.size === count && lightsSaved.size === count && chunkTileEntitiesSaved
     const removeListeners = () => {
       this.removeListener('chunk', saveChunk)
       if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
