@@ -16,6 +16,7 @@ class ChunkDumper extends EventEmitter {
     this.version = version.toString()
     this.mcData = require('minecraft-data')(this.version)
     this.withLightPackets = this.mcData.isNewerOrEqualTo('1.14')
+    this.withTileEntityPackets = this.mcData.isNewerOrEqualTo('1.10')
   }
 
   async start () {
@@ -101,7 +102,7 @@ class ChunkDumper extends EventEmitter {
     const lightsSaved = new Set()
     const chunksSaved = new Set()
     const commonChunks = new Set()
-    let savedChunkWithTileEntities = false
+    let savedChunkWithTileEntities = !this.withTileEntityPackets
     const isDoneCollecting = () => chunksSaved.size >= count && (this.withLightPackets ? lightsSaved.size === count : true) && savedChunkWithTileEntities
 
     let saveChunk, saveChunkLight
@@ -185,10 +186,10 @@ class ChunkDumper extends EventEmitter {
       path.join(folder, 'chunk_' + x + '_' + z + '.meta'), d)
   }
 
-  static async saveChunkFiles (chunkDataFile, chunkMetaFile, { x, z, groundUp, bitMap, biomes, chunkData }) {
+  static async saveChunkFiles (chunkDataFile, chunkMetaFile, { x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) {
     await fs.writeFile(chunkDataFile, chunkData)
     await fs.writeFile(chunkMetaFile, JSON.stringify({
-      x, z, groundUp, bitMap, biomes
+      x, z, groundUp, bitMap, biomes, blockEntities
     }), 'utf8')
   }
 
