@@ -102,17 +102,14 @@ class ChunkDumper extends EventEmitter {
     const chunksSaved = new Set()
     const commonChunks = new Set()
     let savedChunkWithTileEntities = false
-    const isDoneCollecting = () => {
-      console.log(`chunksSaved: ${chunksSaved.size} / ${count}, lightsSaved: ${lightsSaved.size} / ${count}, savedChunkWithTileEntities: ${savedChunkWithTileEntities}`)
-      return chunksSaved.size >= count && (this.withLightPackets ? lightsSaved.size === count : true) && savedChunkWithTileEntities
-    }
+    const isDoneCollecting = () => chunksSaved.size >= count && (this.withLightPackets ? lightsSaved.size === count : true) && savedChunkWithTileEntities
+
     let saveChunk, saveChunkLight
     await new Promise((resolve, reject) => {
       async function savePacket (type, d) {
         const pos = type === 'chunk' ? `${d.x},${d.z}` : `${d.chunkX},${d.chunkZ}`
         if (!commonChunks.has(pos) && commonChunks.size < count) {
           commonChunks.add(pos)
-          console.log('saving', pos, 'as', commonChunks.size, 'chunk')
         } else if (type === 'chunk' && !savedChunkWithTileEntities && d.blockEntities.length > 0) {
           savedChunkWithTileEntities = true
         } else if (!commonChunks.has(pos)) return
