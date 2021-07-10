@@ -37,8 +37,22 @@ class ChunkDumper extends EventEmitter {
       version: this.version,
       port: 25569
     })
-    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }) => {
-      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }))
+    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
+      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
+    })
+    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }) => {
+      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }))
+    })
+  }
+
+  logBackIn () {
+    this.client = mc.createClient({
+      username: 'Player',
+      version: this.version,
+      port: 25569
+    })
+    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }) => {
+      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, blockEntities }))
     })
     this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }) => {
       this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }))
@@ -68,72 +82,73 @@ class ChunkDumper extends EventEmitter {
   }
 
   async saveChunks (folder, count, forcedFileNames = undefined) {
-    try {
-      await fs.mkdir(folder, { recursive: true })
-    } catch (err) {
-
+    let done = false
+    const generateTileEntity = () => {
+      setTimeout(() => {
+        if (!savedChunkWithTileEntities && !done) {
+          this.server.writeServer(`/op ${this.client.username}\n`)
+          setTimeout(() => {
+            if (!savedChunkWithTileEntities && !done) this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
+          }, 100)
+        }
+      }, 2000)
     }
+    const removeListeners = () => {
+      if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
+      this.removeListener('chunk', saveChunk)
+    }
+    try { await fs.mkdir(folder, { recursive: true }) } catch (err) { }
     const lightsSaved = new Set()
     const chunksSaved = new Set()
+    const commonChunks = new Set()
+    let savedChunkWithTileEntities = false
+    const isDoneCollecting = () => {
+      console.log(`chunksSaved: ${chunksSaved.size} / ${count}, lightsSaved: ${lightsSaved.size} / ${count}, savedChunkWithTileEntities: ${savedChunkWithTileEntities}`)
+      return chunksSaved.size >= count && (this.withLightPackets ? lightsSaved.size === count : true) && savedChunkWithTileEntities
+    }
+    let saveChunk, saveChunkLight
     await new Promise((resolve, reject) => {
-      let saveChunkLight
-      const saveChunk = async d => {
-        const { x, z } = d
-        chunksSaved.add(`${x},${z}`)
-        let finished = false
-
-        if ((chunksSaved.size === count && !this.withLightPackets) || (([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count &&
-         this.withLightPackets)) {
-          this.removeListener('chunk', saveChunk)
-          if (this.withLightPackets) {
-            this.removeListener('chunk_light', saveChunkLight)
-          }
-          finished = true
-        }
+      async function savePacket (type, d) {
+        const pos = type === 'chunk' ? `${d.x},${d.z}` : `${d.chunkX},${d.chunkZ}`
+        if (!commonChunks.has(pos) && commonChunks.size < count) {
+          commonChunks.add(pos)
+          console.log('saving', pos, 'as', commonChunks.size, 'chunk')
+        } else if (type === 'chunk' && !savedChunkWithTileEntities && d.blockEntities.length > 0) {
+          savedChunkWithTileEntities = true
+        } else if (!commonChunks.has(pos)) return
         try {
-          if (forcedFileNames !== undefined) {
-            await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
-          } else {
-            await ChunkDumper.saveChunkFilesToFolder(folder, d)
-          }
-          if (finished) {
-            resolve()
-          }
-        } catch (err) {
-          this.removeListener('chunk', saveChunk)
-          if (this.withLightPackets) {
-            this.removeListener('chunk_light', saveChunkLight)
-          }
-          reject(err)
-        }
-      }
-      this.on('chunk', saveChunk)
-      if (this.withLightPackets) {
-        saveChunkLight = async d => {
-          const { chunkX, chunkZ } = d
-          lightsSaved.add(`${chunkX},${chunkZ}`)
-          let finished = false
-          if (([...lightsSaved].filter(x => chunksSaved.has(x))).length >= count) {
-            this.removeListener('chunk', saveChunk)
-            this.removeListener('chunk_light', saveChunkLight)
-            finished = true
-          }
-          try {
+          if (type === 'chunk') {
+            chunksSaved.add(pos)
+            if (forcedFileNames !== undefined) {
+              await ChunkDumper.saveChunkFiles(forcedFileNames.chunkFile, forcedFileNames.metaFile, d)
+            } else {
+              await ChunkDumper.saveChunkFilesToFolder(folder, d)
+            }
+          } else if (type === 'light') {
+            lightsSaved.add(pos)
             if (forcedFileNames !== undefined) {
               await ChunkDumper.saveChunkLightFiles(forcedFileNames.chunkLightFile,
                 forcedFileNames.lightMetaFile, d)
             } else {
               await ChunkDumper.saveChunkLightFilesToFolder(folder, d)
             }
-            if (finished) {
-              resolve()
-            }
-          } catch (err) {
-            this.removeListener('chunk', saveChunk)
-            this.removeListener('chunk_light', saveChunkLight)
-            reject(err)
           }
+          if (isDoneCollecting()) {
+            done = true
+            removeListeners()
+            resolve()
+          }
+        } catch (err) {
+          removeListeners()
+          reject(err)
         }
+      }
+
+      saveChunk = d => savePacket('chunk', d)
+      this.on('chunk', saveChunk)
+      generateTileEntity()
+      if (this.withLightPackets) {
+        saveChunkLight = d => savePacket('light', d)
         this.on('chunk_light', saveChunkLight)
       }
     })
