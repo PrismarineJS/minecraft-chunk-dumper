@@ -49,12 +49,10 @@ describe('chunkDumper lib', function () {
   it('can save 10 chunks', async () => {
     await chunkDumper.saveChunks(path.join(__dirname, 'chunks'), 10)
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
-    // assert(dirContent.length >= 40, 'should have at least 40 files, instead had ' + dirContent.length)
+    assert(dirContent.length >= 40, 'should have at least 40 files, instead had ' + dirContent.length)
     for (const file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
-    const newFiles = await (await fs.readdir(path.join(__dirname, 'chunks'))).filter(o => !dirContent.includes(o))
-    console.log('missing files', newFiles)
     await fs.rmdir(path.join(__dirname, 'chunks'))
   })
 
