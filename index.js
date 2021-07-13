@@ -28,7 +28,16 @@ class ChunkDumper extends EventEmitter {
     this.server.deleteServerDataAsync = util.promisify(this.server.deleteServerData)
 
     debug('starting server')
+    // should be native in minecraft-wrap
+    const regex = /\w[/\d+.\d+.\d+.\d+:\d+] logged in with entity id \d+ at ((-?\d+\.\d), (-?\d+\.\d), (-?\d+\.\d))/
     this.server.on('line', (line) => {
+      if (regex.test(line)) {
+        const [,xStr, yStr, zStr] = line.match(regex)
+        const [x, y, z] = [+xStr, +yStr, +zStr]
+        this.spawnX = x
+        this.spawnY = y
+        this.spawnZ = z
+      }
       debug(line)
     })
     await this.server.startServerAsync({ 'server-port': 25569, 'online-mode': 'false' })
@@ -85,14 +94,7 @@ class ChunkDumper extends EventEmitter {
   async saveChunks (folder, count, forcedFileNames = undefined) {
     let done = false
     const generateTileEntity = () => {
-      setTimeout(() => {
-        if (!savedChunkWithTileEntities && !done) {
-          this.server.writeServer(`/op ${this.client.username}\n`)
-          setTimeout(() => {
-            if (!savedChunkWithTileEntities && !done) this.client.write('chat', { message: '/setblock ~ ~ ~1 beacon' })
-          }, 100)
-        }
-      }, 2000)
+      this.server.writeServer(`setblock ${this.spawnX} ${this.spawnY} ${this.spawnZ + 1} beacon\n`)
     }
     const removeListeners = () => {
       if (this.withLightPackets) this.removeListener('chunk_light', saveChunkLight)
