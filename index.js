@@ -32,7 +32,7 @@ class ChunkDumper extends EventEmitter {
     const regex = /\w[/\d+.\d+.\d+.\d+:\d+] logged in with entity id \d+ at ((-?\d+\.\d), (-?\d+\.\d), (-?\d+\.\d))/
     this.server.on('line', (line) => {
       if (regex.test(line)) {
-        const [,xStr, yStr, zStr] = line.match(regex)
+        const [, xStr, yStr, zStr] = line.match(regex)
         const [x, y, z] = [+xStr, +yStr, +zStr]
         this.spawnX = x
         this.spawnY = y
@@ -92,7 +92,6 @@ class ChunkDumper extends EventEmitter {
   }
 
   async saveChunks (folder, count, forcedFileNames = undefined) {
-    let done = false
     const generateTileEntity = () => {
       this.server.writeServer(`setblock ${this.spawnX} ${this.spawnY} ${this.spawnZ + 1} beacon\n`)
     }
@@ -134,7 +133,6 @@ class ChunkDumper extends EventEmitter {
             }
           }
           if (isDoneCollecting()) {
-            done = true
             removeListeners()
             resolve()
           }
