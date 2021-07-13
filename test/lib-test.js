@@ -7,13 +7,28 @@ const fs = require('fs').promises
 const path = require('path')
 const assert = require('assert')
 const fsOriginal = require('fs')
+const { once } = require('events')
+const end = async ({ client }) => {
+  if (client.state !== 'play') await once(chunkDumper.client, 'login')
+  client.end()
+  await once(client, 'end')
+}
 
 describe('chunkDumper lib', function () {
   this.timeout(120000)
-  before('can start', async () => {
+  before(async () => {
     await chunkDumper.start()
+    await end(chunkDumper)
   })
-
+  beforeEach(() => {
+    chunkDumper.logBackIn()
+  })
+  afterEach(async () => {
+    await end(chunkDumper)
+  })
+  after(async () => {
+    await chunkDumper.stop()
+  })
   it('can receive a chunk event', async () => {
     await new Promise(resolve => chunkDumper.on('chunk', () => resolve()))
   })
@@ -34,7 +49,7 @@ describe('chunkDumper lib', function () {
   it('can save 10 chunks', async () => {
     await chunkDumper.saveChunks(path.join(__dirname, 'chunks'), 10)
     const dirContent = await fs.readdir(path.join(__dirname, 'chunks'))
-    assert(dirContent.length >= 40, 'should have at least 40 files')
+    assert(dirContent.length >= 40, 'should have at least 40 files, instead had ' + dirContent.length)
     for (const file of dirContent) {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
@@ -54,9 +69,5 @@ describe('chunkDumper lib', function () {
       await fs.unlink(path.join(path.join(__dirname, 'chunks'), file))
     }
     await fs.rmdir(path.join(__dirname, 'chunks'))
-  })
-
-  after('can stop', async () => {
-    await chunkDumper.stop()
   })
 })
