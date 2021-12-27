@@ -37,11 +37,11 @@ class ChunkDumper extends EventEmitter {
       version: this.version,
       port: 25569
     })
-    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }) => {
-      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData }))
+    this.client.on('map_chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, heightMaps }) => {
+      this.emit('chunk', ({ x, z, groundUp, bitMap, biomes, chunkData, heightMaps }))
     })
-    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }) => {
-      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data }))
+    this.client.on('update_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data, trustEdges }) => {
+      this.emit('chunk_light', ({ chunkX, chunkZ, skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data, trustEdges }))
     })
   }
 
@@ -173,10 +173,10 @@ class ChunkDumper extends EventEmitter {
       path.join(folder, 'chunk_' + x + '_' + z + '.meta'), d)
   }
 
-  static async saveChunkFiles (chunkDataFile, chunkMetaFile, { x, z, groundUp, bitMap, biomes, chunkData }) {
+  static async saveChunkFiles (chunkDataFile, chunkMetaFile, { x, z, groundUp, bitMap, biomes, ignoreOldData, heightMaps, chunkData }) {
     await fs.writeFile(chunkDataFile, chunkData)
     await fs.writeFile(chunkMetaFile, JSON.stringify({
-      x, z, groundUp, bitMap, biomes
+      x, z, groundUp, bitMap, biomes, ignoreOldData, heightMaps, chunkData
     }), 'utf8')
   }
 
@@ -188,7 +188,7 @@ class ChunkDumper extends EventEmitter {
 
   static async saveChunkLightFiles (chunkLightDataFile, chunkLightMetaFile, {
     chunkX, chunkZ,
-    skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data
+    skyLightMask, blockLightMask, emptySkyLightMask, emptyBlockLightMask, skyLight, blockLight, data, trustEdges
   }) {
     if (Buffer.isBuffer(data)) {
       await fs.writeFile(chunkLightDataFile, data)
@@ -203,7 +203,8 @@ class ChunkDumper extends EventEmitter {
       emptySkyLightMask,
       emptyBlockLightMask,
       skyLight,
-      blockLight
+      blockLight,
+      trustEdges
     }), 'utf8')
   }
 
