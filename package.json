@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "debug": "^4.0.1",
-    "minecraft-data": "^2.86.0",
+    "minecraft-data": "^3.0.0",
     "minecraft-protocol": "^1.11.0",
     "minecraft-wrap": "^1.2.3",
     "minimist": "^1.2.0"
